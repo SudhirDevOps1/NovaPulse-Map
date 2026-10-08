@@ -118,7 +118,9 @@ border-radius: 6px 0 0 0;
 .nps .leaflet-control-attribution a {
 color: #C7D4E2 !important;
 display: inline-block;
-padding: 2px 0;
+padding: 4px 2px;
+min-height: 24px;
+line-height: 16px;
 }
 .nps .leaflet-control-zoom {
 border: 0 !important;

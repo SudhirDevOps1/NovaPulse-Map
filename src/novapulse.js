@@ -176,7 +176,10 @@
        .leaflet-bar rules tie on specificity. */
     '.nps .leaflet-control-attribution{background:var(--nps-ink,#0B0F14)!important;color:var(--nps-faint,#9FB0C6)!important;',
     'font-size:11px!important;line-height:1.5;padding:5px 8px!important;border-radius:6px 0 0 0;}',
-    '.nps .leaflet-control-attribution a{color:#C7D4E2!important;display:inline-block;padding:2px 0;}',
+    /* Links need inline-block + real padding to clear the 24x24 target-size
+   floor; inline links otherwise render at text height (~21px) and fail
+   WCAG 2.5.8. */
+'.nps .leaflet-control-attribution a{color:#C7D4E2!important;display:inline-block;padding:4px 2px;min-height:24px;line-height:16px;}',
     '.nps .leaflet-control-zoom{border:0!important;box-shadow:none!important;display:flex!important;flex-direction:column!important;gap:6px!important;}',
     '.nps .leaflet-control-zoom a,.nps .leaflet-bar a{width:36px!important;height:36px!important;display:grid!important;place-items:center!important;',
     'background:rgba(17,24,35,.94)!important;border:1px solid var(--nps-line,#243244)!important;border-radius:9px!important;',
@@ -330,6 +333,16 @@
     }
 
     this._root = resolveContainer(this.options.container);
+
+    /* Mounting twice on one element used to orphan the first instance:
+       its interval, ResizeObserver and Leaflet map all stayed live and
+       invisible, leaking on every re-init. Tear it down first. */
+    var prior = this._root.__npsInstance;
+    if (prior && prior !== this && typeof prior.destroy === 'function') {
+      try { prior.destroy(); } catch (e) { console.error('[NovaPulseMap] failed to dispose previous instance', e); }
+    }
+    this._root.__npsInstance = this;
+
     this._build();
   }
 
@@ -677,7 +690,7 @@
   };
 
   NovaPulseMap.prototype._renderMarkers = function () {
-    if (!this._markerLayer) return;
+    if (!this._markerLayer || this._destroyed || !this._map) return;
     var self = this;
     this._markerLayer.clearLayers();
     this._rendered = [];
@@ -758,7 +771,7 @@
   };
 
   NovaPulseMap.prototype._refresh = function () {
-    if (this._destroyed) return;
+    if (this._destroyed || !this._map) return;
     var self = this;
 
     if (this._live) {
@@ -889,7 +902,16 @@
   /* ── Sizing ───────────────────────────────────────────────────────── */
 
   NovaPulseMap.prototype._fit = function () {
+    if (this._destroyed || !this._map) return;
     if (this._nodes.length < 2) return;
+    /* LatLngBounds from two points spanning the antimeridian yields an
+       empty/inverted box, and fitBounds on that throws. Fall back to a
+       plain fit over the widest safe zoom. */
+    var lats = this._nodes.map(function (v) { return v.lat; });
+    var lons = this._nodes.map(function (v) { return v.lon; });
+    var latSpan = Math.max.apply(null, lats) - Math.min.apply(null, lats);
+    var lonSpan = Math.max.apply(null, lons) - Math.min.apply(null, lons);
+    if (!(latSpan >= 0) || !(lonSpan >= 0)) return;
     var b = L.latLngBounds(this._nodes.map(function (v) { return [v.lat, v.lon]; }));
     var BLEED = 14;
     this._map.fitBounds(b, {
@@ -900,8 +922,12 @@
   };
 
   NovaPulseMap.prototype.invalidateSize = function () {
-    if (this._destroyed) return this;
-    if (!this._root.clientWidth || !this._root.clientHeight) return this;
+    if (this._destroyed || !this._map) return this;
+    /* Measure the SURFACE, not the host. The host is a stack that can be
+       taller than the map (toggle + panel), and after destroy() Leaflet
+       reports a zero size — either path produces a bogus fitBounds. */
+    var surface = this._frame;
+    if (!surface || !surface.clientWidth || !surface.clientHeight) return this;
     this._map.invalidateSize({ pan: false, animate: false });
     if (!this._interacted) this._fit();
     return this;
@@ -909,11 +935,31 @@
 
   /* ── Map controls ─────────────────────────────────────────────────── */
 
-  NovaPulseMap.prototype.zoomIn = function () { this._map.zoomIn(); return this; };
-  NovaPulseMap.prototype.zoomOut = function () { this._map.zoomOut(); return this; };
-  NovaPulseMap.prototype.fit = function () { this._interacted = false; this._fit(); return this; };
-  NovaPulseMap.prototype.setView = function (latlng, zoom) { this._interacted = true; this._map.setView(latlng, zoom); return this; };
-  NovaPulseMap.prototype.getZoom = function () { return this._map.getZoom(); };
+  /* All guarded: Leaflet's remove() detaches the container, so calling
+     into it afterwards throws inside Leaflet, not here. */
+  NovaPulseMap.prototype.zoomIn = function () {
+    if (!this._destroyed && this._map) this._map.zoomIn();
+    return this;
+  };
+  NovaPulseMap.prototype.zoomOut = function () {
+    if (!this._destroyed && this._map) this._map.zoomOut();
+    return this;
+  };
+  NovaPulseMap.prototype.fit = function () {
+    if (this._destroyed || !this._map) return this;
+    this._interacted = false;
+    this._fit();
+    return this;
+  };
+  NovaPulseMap.prototype.setView = function (latlng, zoom) {
+    if (this._destroyed || !this._map) return this;
+    this._interacted = true;
+    this._map.setView(latlng, zoom);
+    return this;
+  };
+  NovaPulseMap.prototype.getZoom = function () {
+    return (this._destroyed || !this._map) ? null : this._map.getZoom();
+  };
 
   /* ── Hint ─────────────────────────────────────────────────────────── */
 
@@ -953,6 +999,13 @@
   /* ── State ────────────────────────────────────────────────────────── */
 
   NovaPulseMap.prototype.getState = function () {
+    if (this._destroyed) {
+      return {
+        version: VERSION, live: false, zoom: null, nodes: [],
+        counts: { Operational: 0, Degraded: 0, Down: 0 },
+        status: 'Operational', clusters: 0
+      };
+    }
     var counts = { Operational: 0, Degraded: 0, Down: 0 };
     this._nodes.forEach(function (v) { counts[v.status] = (counts[v.status] || 0) + 1; });
     var worst = this._worst(this._nodes);
@@ -979,6 +1032,11 @@
     if (this._map) { try { this._map.remove(); } catch (e) {} }
     this._root.innerHTML = '';
     this._root.classList.remove('nps', 'nps-invert', 'nps-anim');
+    /* Only clear the back-reference if it still points at us, so a
+       destroy() on a stale instance cannot unclaim a newer mount. */
+    if (this._root.__npsInstance === this) delete this._root.__npsInstance;
+    this._root.style.removeProperty('--nps-height');
+    this._root.style.removeProperty('--nps-ink');
     this.emit('destroy', null);
     this._h = {};
   };
@@ -1018,8 +1076,9 @@
     for (var i = 0; i < nodes.length; i++) {
       if (nodes[i].__npsInstance) continue;
       try {
+        /* The constructor now records __npsInstance itself, so calling
+           mount() again is a no-op instead of a double mount. */
         var inst = new NovaPulseMap(readOptionsFromAttrs(nodes[i]));
-        nodes[i].__npsInstance = inst;
         /* A JSON source turns the widget into a live status embed. */
         if (inst.options.nodesUrl) {
           fetch(inst.options.nodesUrl, { cache: 'no-store' })

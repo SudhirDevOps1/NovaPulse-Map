@@ -27,9 +27,10 @@ function makeEl(tag) {
     children: [],
     style: {
       _p: {},
+      cssText: '',
       setProperty(k, v) { this._p[k] = v; },
       getPropertyValue(k) { return this._p[k] || ''; },
-      cssText: '',
+      removeProperty(k) { delete this._p[k]; },
     },
     classList: {
       _s: new Set(),
@@ -234,8 +235,19 @@ function check(name, fn) {
 function assert(cond, msg) {
   if (!cond) throw new Error(msg || 'assertion failed');
 }
+/* JSON.stringify throws on cycles, which an instance reference
+   legitimately creates. Compare structurally instead. */
+function stable(v, seen = new Set()) {
+  if (v === null || typeof v !== 'object') return v;
+  if (seen.has(v)) return '[circular]';
+  seen.add(v);
+  if (Array.isArray(v)) return v.map(x => stable(x, seen));
+  const out = {};
+  for (const k of Object.keys(v).sort()) out[k] = stable(v[k], seen);
+  return out;
+}
 function eq(a, b, msg) {
-  const A = JSON.stringify(a), B = JSON.stringify(b);
+  const A = JSON.stringify(stable(a)), B = JSON.stringify(stable(b));
   if (A !== B) throw new Error(`${msg || 'not equal'}\n        expected ${B}\n        actual   ${A}`);
 }
 
@@ -540,6 +552,81 @@ check('OSM attribution is always present', () => {
 });
 
 /* ── Container / layout ─────────────────────────────────────────────── */
+
+check('mounting twice disposes the previous instance', () => {
+  const host = makeEl('div');
+  const first = new NovaPulseMap({ container: host, live: false });
+  assert(first._timer !== null, 'precondition: first has a timer');
+  assert(host.__npsInstance === first, 'first instance recorded on host');
+
+  const second = new NovaPulseMap({ container: host, live: false });
+
+  eq(first._destroyed, true, 'first instance was NOT destroyed — it leaks');
+  eq(first._timer, null, 'first timer still running');
+  eq(host.__npsInstance, second, 'host should point at the newest instance');
+  second.destroy();
+});
+
+check('destroy of a stale instance does not unclaim a newer mount', () => {
+  const host = makeEl('div');
+  const first = new NovaPulseMap({ container: host, live: false });
+  const second = new NovaPulseMap({ container: host, live: false });
+  first.destroy();                       // stale, already replaced
+  eq(host.__npsInstance, second, 'stale destroy() clobbered the live instance');
+  second.destroy();
+});
+
+check('auto-init style double mount is idempotent', () => {
+  const host = makeEl('div');
+  const inst = new NovaPulseMap({ container: host, live: false });
+  const first = inst._timer;
+  inst.constructor.mount();              // scan finds nothing without a DOM
+  eq(inst._timer, first, 'mount() disturbed a live instance');
+  inst.destroy();
+});
+
+check('destroy releases the host back-reference', () => {
+  const host = makeEl('div');
+  const inst = new NovaPulseMap({ container: host, live: false });
+  assert(host.__npsInstance === inst, 'precondition');
+  inst.destroy();
+  eq(host.__npsInstance, undefined, 'stale reference left on host');
+});
+
+check('post-destroy state and map controls are inert', () => {
+  const { inst } = mount({ nodes: [{ id: 'a', lat: 1, lon: 2 }] });
+  inst.destroy();
+  const s = inst.getState();
+  eq(s.nodes, []);
+  eq(s.zoom, null);
+  eq(s.status, 'Operational');
+  eq(inst.getZoom(), null, 'getZoom should be null after destroy');
+  /* none of these may throw */
+  inst.zoomIn(); inst.zoomOut(); inst.fit(); inst.setView([0, 0], 3); inst.invalidateSize();
+  assert(true);
+});
+
+check('fit tolerates a single node and a degenerate span', () => {
+  const one = mount({ nodes: [{ id: 'a', lat: 10, lon: 20 }] });
+  one.inst.fit();
+  one.inst.destroy();
+
+  const two = mount({
+    nodes: [{ id: 'a', lat: 10, lon: 20 }, { id: 'b', lat: 10, lon: 20 }],
+  });
+  two.inst.fit();
+  two.inst.destroy();
+  assert(true, '_fit threw on a zero-span bounds');
+});
+
+check('nodes are not mutated in place by setNodes', () => {
+  const input = [{ id: 'a', lat: 1, lon: 2, latency: 10 }];
+  const { inst } = mount({ nodes: input, live: false });
+  inst._refresh();
+  eq(input[0].latency, 10, 'caller-supplied object was mutated');
+  assert(inst.getNodes()[0] !== input[0], 'internal node aliases the caller object');
+  inst.destroy();
+});
 
 check('surface owns the height; host does not clip', () => {
   const { host, inst } = mount({ nodes: [], height: 333 });
