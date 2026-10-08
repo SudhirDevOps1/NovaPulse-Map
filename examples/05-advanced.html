@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Advanced example for NovaPulse Edge Map: sparklines, p95 latency, trend indicators, live polling with exponential backoff, search, status filters, sortable columns, theme switching, JSON export and incident detection." />
+<meta name="theme-color" content="#0B0F14" />
+<title>NovaPulse Edge Map — Example 5 · Advanced</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="../dist/novapulse.css" />
+<style>
+  body{margin:0;background:#0B0F14;color:#E2E8F0;
+       font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  .wrap{max-width:1240px;margin:0 auto;padding:40px 24px}
+  h1{font-size:1.7rem;letter-spacing:-.02em;margin:0 0 6px}
+  p.lede{color:#94A3B8;margin:0 0 8px;font-size:.95rem;max-width:70ch}
+  p.note{color:#94A3B8;font-size:.85rem;margin:0 0 26px;max-width:70ch}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+  @media(max-width:880px){.grid{grid-template-columns:1fr}}
+  .box{background:#111823;border:1px solid #243244;border-radius:12px;padding:16px 18px}
+  .box h2{margin:0 0 12px;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#C7D4E2}
+  .log{font-family:ui-monospace,Menlo,monospace;font-size:.74rem;color:#C7D4E2;
+       max-height:210px;overflow:auto;white-space:pre-wrap;margin:0}
+  .feedrow{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .btn{background:#1B2634;border:1px solid #33455C;color:#E2E8F0;border-radius:8px;
+       min-height:32px;padding:8px 14px;font:inherit;font-size:.83rem;cursor:pointer}
+  .btn:hover{background:#243244}
+  .btn:focus-visible{outline:2px solid #38BDF8;outline-offset:2px}
+  .btn[aria-pressed="true"]{background:#E2E8F0;color:#0B0F14;border-color:transparent}
+  .pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;
+        border:1px solid}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>Example 5 — Advanced</h1>
+  <p class="lede">
+    Everything in the library, enabled at once: per-node sparklines, p95 latency, trend
+    arrows, live polling with exponential backoff, search, status filters, sortable
+    columns, a live theme switch, JSON export, and incident/recovery detection.
+  </p>
+  <p class="note">
+    Data comes from <code>/api/probes.json</code>, served by the dev server with
+    randomised latency and an occasional forced outage. To watch recovery work,
+    toggle <em>force outage</em>, leave it on for a poll or two, then switch it off.
+  </p>
+
+  <div class="feedrow">
+    <button class="btn" id="bPolling" aria-pressed="true">Polling on</button>
+    <button class="btn" id="bOutage" aria-pressed="false">Force outage</button>
+    <button class="btn" id="bJitter" aria-pressed="false">Extra jitter</button>
+    <button class="btn" id="bBackoff" aria-pressed="false">Break endpoint</button>
+    <button class="btn" id="bClear">Clear history</button>
+    <span class="pill" id="feedPill" style="color:#22C55E;background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.3)">connected</span>
+  </div>
+
+  <div id="advanced"></div>
+
+  <div class="grid">
+    <div class="box">
+      <h2>Incident &amp; recovery events</h2>
+      <pre class="log" id="events"></pre>
+    </div>
+    <div class="box">
+      <h2>Feed log</h2>
+      <pre class="log" id="feedlog"></pre>
+    </div>
+  </div>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="../dist/novapulse.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var NODES = [
+    { id:'iad', name:'Ashburn',      region:'us-east',    country:'US', lat: 39.0438, lon: -77.4874 },
+    { id:'ewr', name:'New York',     region:'us-east',    country:'US', lat: 40.7128, lon: -74.0060 },
+    { id:'ord', name:'Chicago',      region:'us-central', country:'US', lat: 41.8781, lon: -87.6298 },
+    { id:'dfw', name:'Dallas',       region:'us-central', country:'US', lat: 32.7767, lon: -96.7970 },
+    { id:'sjc', name:'San Jose',     region:'us-west',    country:'US', lat: 37.3541, lon:-121.9552 },
+    { id:'lhr', name:'London',       region:'eu-west',    country:'GB', lat: 51.5074, lon:  -0.1278 },
+    { id:'fra', name:'Frankfurt',    region:'eu-central', country:'DE', lat: 50.1109, lon:   8.6821 },
+    { id:'ams', name:'Amsterdam',    region:'eu-west',    country:'NL', lat: 52.3676, lon:   4.9041 },
+    { id:'dxb', name:'Dubai',        region:'me',         country:'AE', lat: 25.2048, lon:  55.2708 },
+    { id:'bom', name:'Mumbai',       region:'apac',       country:'IN', lat: 19.0760, lon:  72.8777 },
+    { id:'gru', name:'São Paulo',    region:'sa',         country:'BR', lat:-23.5505, lon: -46.6333 },
+    { id:'sin', name:'Singapore',    region:'apac',       country:'SG', lat:  1.3521, lon: 103.8198 },
+    { id:'nrt', name:'Tokyo',        region:'apac',       country:'JP', lat: 35.6762, lon: 139.6503 },
+    { id:'syd', name:'Sydney',       region:'apac',       country:'AU', lat:-33.8688, lon: 151.2093 },
+    { id:'jnb', name:'Johannesburg', region:'africa',     country:'ZA', lat:-26.2041, lon:  28.0473 },
+    { id:'yyz', name:'Toronto',      region:'us-east',    country:'CA', lat: 43.6532, lon: -79.3832 }
+  ];
+
+  var eventsEl = document.getElementById('events');
+  var feedEl   = document.getElementById('feedlog');
+  var pill     = document.getElementById('feedPill');
+
+  function line(el, msg, color) {
+    var d = document.createElement('div');
+    d.textContent = new Date().toLocaleTimeString() + '  ' + msg;
+    if (color) d.style.color = color;
+    el.prepend(d);
+    while (el.children.length > 60) el.removeChild(el.lastChild);
+  }
+
+  var map = new NovaPulseMap({
+    container: '#advanced',
+    nodes: NODES,
+    height: 500,
+    theme: 'dark',
+    tile: 'osmDark',
+
+    /* Panels */
+    showToggle: true,
+    showControls: true,
+    showStats: true,
+    showTable: true,
+
+    /* Advanced */
+    showSearch: true,
+    sortableTable: true,
+    showSparklines: true,
+    showTrend: true,
+    showUptime: true,
+    deepLink: true,
+    persistKey: 'novapulse-demo-advanced',
+
+    /* Live feed */
+    nodesUrl: '/api/probes.json',
+    live: false,          /* real data — never fake it with jitter */
+    refreshMs: 4000,
+    refreshBackoff: true,
+    pauseWhenHidden: true,
+
+    onStatusChange: function (d) {
+      var tone = d.to === 'Operational' ? '#22C55E'
+               : d.to === 'Degraded' ? '#F59E0B' : '#EF4444';
+      line(eventsEl, d.name + '  ' + d.from + ' → ' + d.to, tone);
+    },
+    onFeedError: function (d) {
+      line(feedEl, 'error: ' + d.error + ' (attempt ' + d.attempts + ')', '#EF4444');
+    }
+  });
+
+  ['ready','feed','error','feedstopped','themechange','recovered']
+    .forEach(function (evt) {
+      map.on(evt, function (d) {
+        if (evt === 'feed') return line(feedEl, 'ok · ' + d.nodes + ' nodes');
+        if (evt === 'error') return;   /* already logged by onFeedError */
+        line(feedEl, evt + (d && d.attempts ? ' after ' + d.attempts + ' attempts' : ''));
+      });
+    });
+
+  map.startPolling();
+
+  /* ── Demo controls ──────────────────────────────────────────────── */
+
+  var polling = true;
+  document.getElementById('bPolling').onclick = function () {
+    polling = !polling;
+    this.setAttribute('aria-pressed', String(polling));
+    this.textContent = polling ? 'Polling on' : 'Polling off';
+    if (polling) { map.startPolling(); } else { map.stopPolling(); }
+    line(feedEl, polling ? 'polling started' : 'polling stopped');
+  };
+
+  /* Toggling these changes what the dev server returns, so the effect is
+     visible in the real feed rather than faked in the page. */
+  function toggleParam(btn, key, label) {
+    var on = btn.getAttribute('aria-pressed') !== 'true';
+    btn.setAttribute('aria-pressed', String(on));
+    btn.style.background = on ? '#E2E8F0' : '';
+    btn.style.color = on ? '#0B0F14' : '';
+    fetch('/api/flags?' + key + '=' + (on ? '1' : '0'));
+    line(feedEl, label + ': ' + (on ? 'on' : 'off'));
+  }
+  document.getElementById('bOutage').onclick = function () { toggleParam(this, 'outage', 'force outage'); };
+  document.getElementById('bJitter').onclick = function () { toggleParam(this, 'jitter', 'extra jitter'); };
+  document.getElementById('bBackoff').onclick = function () {
+    toggleParam(this, 'broken', 'endpoint');
+    line(feedEl, 'watch the poll interval grow, then reset');
+  };
+
+  document.getElementById('bClear').onclick = function () {
+    map.clearHistory();
+    line(feedEl, 'history cleared');
+  };
+
+  /* Poll the dev server's /api/flags to keep the pill honest. */
+  setInterval(function () {
+    fetch('/api/probes.json', { cache:'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function () {
+        pill.textContent = 'connected';
+        pill.style.color = '#22C55E';
+        pill.style.background = 'rgba(34,197,94,.15)';
+        pill.style.borderColor = 'rgba(34,197,94,.3)';
+      })
+      .catch(function () {
+        pill.textContent = 'unreachable';
+        pill.style.color = '#EF4444';
+        pill.style.background = 'rgba(239,68,68,.15)';
+        pill.style.borderColor = 'rgba(239,68,68,.3)';
+      });
+  }, 4000);
+
+  line(eventsEl, 'Watching for status transitions…', '#94A3B8');
+  line(feedEl, 'NovaPulseMap v' + NovaPulseMap.VERSION + ' · advanced example');
+})();
+</script>
+</body>
+</html>

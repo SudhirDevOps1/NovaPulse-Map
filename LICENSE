@@ -1,4 +1,4 @@
-MIT License
+﻿MIT License
 
 Copyright (c) 2026 Sudhir Singh
 
@@ -19,3 +19,20 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+## Third-party attributions
+
+This package renders map tiles and geographic data from third-party services.
+Those services are not covered by the MIT license above:
+
+  * Map data (c) OpenStreetMap contributors, licensed under the Open Database
+    License (ODbL): https://opendatacommons.org/licenses/odbl/
+  * Tiles may be served by the OpenStreetMap Foundation, the German OSM
+    mirror, or CARTO, each under its own usage policy. See README.md,
+    section "Tile sources".
+  * Leaflet is a peer dependency and is never bundled. It is BSD-2-Clause.
+
+The OpenStreetMap attribution rendered in the bottom-left corner of every map
+is required by the tile providers' usage policies and must not be removed.

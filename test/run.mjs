@@ -155,6 +155,8 @@ const L = {
       fitBounds(b, o) { this._fit = { b, o }; },
       zoomIn() {}, zoomOut() {},
       remove() { this.removed = true; },
+      removeLayer(l) { this._layers = this._layers.filter(x => x !== l); return this; },
+      addLayer(l) { this._layers.push(l); return this; },
       getContainer() { return makeEl('div'); },
       project() { return { distanceTo: () => 9999 }; },
       on(ev, fn) { (this._ev || (this._ev = {}))[ev] = fn; },
@@ -253,7 +255,11 @@ function eq(a, b, msg) {
 
 /* Live probing mutates latency on a timer, which would make value
    assertions flaky. Default every mount to paused unless a test asks
-   otherwise. */
+   otherwise.
+
+   NOTE: the constructor calls setNodes(options.nodes) once, which records
+   one history sample per node. Tests that count samples must account for
+   that baseline. */
 function mount(opts) {
   const host = makeEl('div');
   opts = Object.assign({ container: host, live: false }, opts);
@@ -301,7 +307,16 @@ check('normalises nodes and defaults fields', () => {
   eq(n.lat, 10); eq(n.lon, 20);
   assert(n.id === '0', 'id falls back to index');
   assert(n.status === 'Operational', 'status defaults');
-  assert(n.latency === 0, 'latency defaults to 0');
+  /* Unknown, not 0 — see "an absent latency is unknown, never 0 ms". */
+  eq(n.latency, null, 'missing latency must be null');
+  eq(n.hasLatency, false);
+  inst.destroy();
+});
+
+check('ms alias sets hasLatency', () => {
+  const { inst } = mount({ nodes: [{ id: 'a', lat: 1, lon: 2, ms: 12 }], live: false });
+  eq(inst.getNode('a').latency, 12);
+  eq(inst.getNode('a').hasLatency, true);
   inst.destroy();
 });
 
@@ -625,6 +640,378 @@ check('nodes are not mutated in place by setNodes', () => {
   inst._refresh();
   eq(input[0].latency, 10, 'caller-supplied object was mutated');
   assert(inst.getNodes()[0] !== input[0], 'internal node aliases the caller object');
+  inst.destroy();
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   Advanced features (v1.1.0)
+   ══════════════════════════════════════════════════════════════════ */
+
+check('history is a bounded ring buffer', () => {
+  const { inst } = mount({ nodes: [{ id: 'a', lat: 1, lon: 2, latency: 5 }], live: true, historyLength: 8 });
+  for (let i = 0; i < 40; i++) inst._pushHistory({ id: 'a', latency: i, status: 'Operational' });
+  eq(inst.getHistory('a').length, 8, 'history exceeded historyLength');
+  eq(inst.getHistory('a')[7], 39, 'newest sample should be last');
+  inst.destroy();
+});
+
+check('Down nodes record a gap, never a 0 ms reading', () => {
+  const { inst } = mount({ nodes: [{ id: 'a', lat: 1, lon: 2, status: 'Down' }], live: true });
+  inst._refresh();
+  const h = inst.getHistory('a');
+  eq(h.length >= 1, true);
+  eq(h[0], null, 'a down node must record null so the sparkline shows a gap');
+  eq(inst.getPercentiles('a'), null, 'no percentiles from gaps alone');
+  inst.destroy();
+});
+
+check('percentiles are ordered and sane', () => {
+  /* historyLength raised so 100 samples fit; the default cap would
+     silently truncate them and make p99 wrong. */
+  const { inst } = mount({ nodes: [], live: false, historyLength: 720 });
+  for (let i = 1; i <= 100; i++) inst._pushHistory({ id: 'p', latency: i, status: 'Operational' });
+  const p = inst.getPercentiles('p');
+  eq(p.samples, 100);
+  eq(p.min, 1);
+  eq(p.max, 100);
+  assert(p.p50 >= p.min && p.p50 <= p.max, 'p50 out of range');
+  assert(p.p95 >= p.p50, 'p95 must be >= p50');
+  assert(p.p99 >= p.p95, 'p99 must be >= p95');
+  inst.destroy();
+});
+
+check('history survives setNodes but not node churn', () => {
+  const { inst } = mount({ nodes: [], live: false });
+  for (let i = 0; i < 5; i++) inst._pushHistory({ id: 'a', latency: i, status: 'Operational' });
+  /* setNodes also samples incoming data, so the count grows by one —
+     what matters is that the prior samples survive. */
+  inst.setNodes([{ id: 'a', lat: 1, lon: 2 }]);
+  eq(inst.getHistory('a').length, 6, 'history truncated by setNodes');
+  eq(inst.getHistory('a')[0], 0, 'oldest sample lost');
+  inst.setNodes([{ id: 'z', lat: 1, lon: 2 }]);
+  eq(inst.getHistory('a').length, 0, 'history for a removed node leaked');
+  eq(inst.getHistory('z').length, 1);
+  inst.destroy();
+});
+
+check('polled data is sampled exactly once per setNodes', () => {
+  /* The double-count guard: setNodes samples, and _refresh must not
+     sample again while a nodesUrl is configured. */
+  const { inst } = mount({ nodes: [], live: true, nodesUrl: '/api/x.json', historyLength: 720 });
+  inst.setNodes([{ id: 'a', lat: 1, lon: 2, latency: 10, status: 'Operational' }]);
+  eq(inst.getHistory('a').length, 1, 'setNodes should record exactly one sample');
+  inst._refresh();
+  eq(inst.getHistory('a').length, 1, '_refresh double-counted a polled sample');
+  inst.setNodes([{ id: 'a', lat: 1, lon: 2, latency: 11, status: 'Operational' }]);
+  eq(inst.getHistory('a').length, 2, 'second poll should add exactly one sample');
+  eq(inst.getHistory('a')[1], 11, 'wrong value recorded');
+  inst.destroy();
+});
+
+check('live jitter still samples when there is no feed', () => {
+  const { inst } = mount({ nodes: [{ id: 'a', lat: 1, lon: 2, latency: 10 }], live: true });
+  /* Constructor setNodes() records the first sample. */
+  eq(inst.getHistory('a').length, 1, 'initial setNodes sample');
+  inst._refresh();
+  eq(inst.getHistory('a').length, 2, '_refresh did not sample');
+  inst._refresh();
+  eq(inst.getHistory('a').length, 3);
+  inst.destroy();
+});
+
+check('status transitions fire once per change', () => {
+  const { inst } = mount({
+    nodes: [{ id: 'a', lat: 1, lon: 2, status: 'Operational' }],
+    live: false,
+  });
+  const seen = [];
+  inst.on('statuschange', d => seen.push(d.from + '→' + d.to));
+  inst.setNodes([{ id: 'a', lat: 1, lon: 2, status: 'Operational' }]);
+  eq(seen, [], 'no-op setNodes fired a transition');
+  inst.setNodes([{ id: 'a', lat: 1, lon: 2, status: 'Down' }]);
+  inst.setNodes([{ id: 'a', lat: 1, lon: 2, status: 'Down' }]);
+  inst.setNodes([{ id: 'a', lat: 1, lon: 2, status: 'Operational' }]);
+  eq(seen, ['Operational→Down', 'Down→Operational']);
+  inst.destroy();
+});
+
+check('recovery event fires on return to Operational', () => {
+  const { inst } = mount({ nodes: [{ id: 'a', lat: 1, lon: 2, status: 'Down' }], live: false });
+  let recovered = 0;
+  inst.on('recovered', () => recovered++);
+  inst.setNodes([{ id: 'a', lat: 1, lon: 2, status: 'Operational' }]);
+  eq(recovered, 1);
+  inst.setNodes([{ id: 'a', lat: 1, lon: 2, status: 'Degraded' }]);
+  eq(recovered, 1, 'recovery fired for a non-Operational state');
+  inst.destroy();
+});
+
+check('search filters across name, region, country and id', () => {
+  const { inst } = mount({
+    nodes: [
+      { id: 'iad', name: 'Ashburn', region: 'us-east', country: 'US', lat: 39, lon: -77 },
+      { id: 'nrt', name: 'Tokyo', region: 'apac', country: 'JP', lat: 35, lon: 139 },
+    ],
+    live: false,
+  });
+  inst.setSearch('tokyo');   eq(inst._visible().length, 1, 'name search');
+  inst.setSearch('apac');    eq(inst._visible().length, 1, 'region search');
+  inst.setSearch('jp');      eq(inst._visible().length, 1, 'country search');
+  inst.setSearch('US');      eq(inst._visible().length, 1, 'country search is case-insensitive');
+  inst.setSearch('zzz');     eq(inst._visible().length, 0, 'no matches');
+  inst.setSearch('');        eq(inst._visible().length, 2, 'cleared');
+  inst.destroy();
+});
+
+check('status filter narrows to one status', () => {
+  const { inst } = mount({
+    nodes: [
+      { id: 'a', lat: 1, lon: 2, status: 'Operational' },
+      { id: 'b', lat: 3, lon: 4, status: 'Down' },
+    ],
+    live: false,
+  });
+  inst.setFilter('Down');
+  eq(inst._visible().map(n => n.id), ['b']);
+  inst.setFilter('all');
+  eq(inst._visible().length, 2);
+  inst.destroy();
+});
+
+check('sorting works and handles Down as worst latency', () => {
+  const { inst } = mount({
+    nodes: [
+      { id: 'a', name: 'Zulu', lat: 1, lon: 2, status: 'Operational', latency: 10 },
+      { id: 'b', name: 'Alpha', lat: 3, lon: 4, status: 'Down', latency: 0 },
+      { id: 'c', name: 'Mike', lat: 5, lon: 6, status: 'Operational', latency: 50 },
+    ],
+    live: false,
+  });
+  inst.setSort('name', 1);
+  eq(inst._sortNodes(inst._nodes).map(n => n.name), ['Alpha', 'Mike', 'Zulu']);
+  inst.setSort('name', -1);
+  eq(inst._sortNodes(inst._nodes).map(n => n.name), ['Zulu', 'Mike', 'Alpha']);
+  /* Down must sort as worst (Infinity), not as its 0 latency */
+  inst.setSort('latency', 1);
+  eq(inst._sortNodes(inst._nodes).map(n => n.id), ['a', 'c', 'b'], 'Down sorted by its 0 value');
+  inst.destroy();
+});
+
+check('trend arrow needs enough history and stays bounded', () => {
+  const { inst } = mount({ nodes: [{ id: 'a', lat: 1, lon: 2, latency: 10 }], live: false, showTrend: true });
+  eq(inst._trendArrow({ id: 'a' }), '', 'arrow with no history');
+  for (let i = 0; i < 8; i++) inst._pushHistory({ id: 'a', latency: 10, status: 'Operational' });
+  assert(/flat|↑|↓/.test(inst._trendArrow({ id: 'a' })), 'no arrow after enough flat history');
+  const html = inst._trendArrow({ id: 'a' });
+  assert(!/Infinity|NaN|undefined/.test(html), 'arrow leaked a bad number: ' + html);
+  inst.destroy();
+});
+
+check('sparkline is valid SVG with escaped values', () => {
+  const { inst } = mount({ nodes: [{ id: 'a', lat: 1, lon: 2 }], live: false, showSparklines: true });
+  for (let i = 1; i <= 5; i++) inst._pushHistory({ id: 'a', latency: i * 10, status: 'Operational' });
+  const svg = inst._sparkline(inst.getNode('a'));
+  assert(/<svg/.test(svg), 'no svg');
+  assert(/<polyline/.test(svg), 'no polyline');
+  assert(!/NaN|Infinity|undefined/.test(svg), 'sparkline contains a bad coordinate');
+  eq(inst._sparkline({ id: 'zzz' }), '', 'should render nothing without history');
+  inst.destroy();
+});
+
+check('a flat series does not divide by zero in the sparkline', () => {
+  const { inst } = mount({ nodes: [], live: false, showSparklines: true });
+  for (let i = 0; i < 5; i++) inst._pushHistory({ id: 'f', latency: 42, status: 'Operational' });
+  const svg = inst._sparkline({ id: 'f', latency: 42, status: 'Operational' });
+  assert(!/NaN/.test(svg), 'zero-span series produced NaN');
+  inst.destroy();
+});
+
+check('poll recovers the backoff after a failure', async () => {
+  const saved = sandbox.fetch;
+  let calls = 0;
+  sandbox.fetch = () => { calls++; return Promise.reject(new Error('boom')); };
+  const { inst } = mount({ nodes: [], live: false, nodesUrl: '/api/x.json' });
+
+  await inst.poll();
+  eq(inst._feedStatus, 'error');
+  assert(inst._backoffMs > inst.options.refreshMs, 'backoff did not grow');
+  assert(calls === 1, 'fetch called ' + calls + ' times');
+
+  /* recovery resets the interval */
+  sandbox.fetch = () => Promise.resolve({ ok: true, json: () => Promise.resolve([{ id: 'a', lat: 1, lon: 2 }]) });
+  await inst.poll();
+  eq(inst._feedStatus, 'ok');
+  eq(inst._backoffMs, inst.options.refreshMs, 'backoff did not reset on recovery');
+  sandbox.fetch = saved;
+  inst.destroy();
+});
+
+check('poll rejects a malformed payload', async () => {
+  const saved = sandbox.fetch;
+  sandbox.fetch = () => Promise.resolve({ ok: true, json: () => Promise.resolve({ nope: true }) });
+  const { inst } = mount({ nodes: [], live: false, nodesUrl: '/api/x.json' });
+  await inst.poll();
+  eq(inst._feedStatus, 'error', 'a { nope: true } payload should be an error');
+  sandbox.fetch = saved;
+  inst.destroy();
+});
+
+check('poll reports HTTP failures', async () => {
+  const saved = sandbox.fetch;
+  sandbox.fetch = () => Promise.resolve({ ok: false, status: 503, json: () => Promise.resolve({}) });
+  const { inst } = mount({ nodes: [], live: false, nodesUrl: '/api/x.json' });
+  await inst.poll();
+  eq(inst._feedStatus, 'error');
+  sandbox.fetch = saved;
+  inst.destroy();
+});
+
+check('extra node metadata is carried through', () => {
+  const { inst } = mount({
+    nodes: [{ id: 'a', name: 'A', lat: 1, lon: 2, country: 'JP', provider: 'Example',
+              uptime: 99.98, note: 'Maintenance window Sunday' }],
+    live: false,
+  });
+  const n = inst.getNode('a');
+  eq(n.country, 'JP');
+  eq(n.provider, 'Example');
+  eq(n.uptime, 99.98);
+  eq(n.note, 'Maintenance window Sunday');
+  inst.destroy();
+});
+
+check('an absent latency is unknown, never 0 ms', () => {
+  const { inst } = mount({
+    nodes: [{ id: 'a', lat: 1, lon: 2 }, { id: 'b', lat: 3, lon: 4, latency: 40 }],
+    live: false,
+  });
+  const a = inst.getNode('a');
+  eq(a.latency, null, 'missing latency must be null, not 0');
+  eq(a.hasLatency, false);
+  eq(inst._latencyText(a), '—', 'should render an em dash');
+  eq(inst.getNode('b').hasLatency, true);
+  eq(inst._latencyText(inst.getNode('b')), '40 ms');
+
+  /* A fabricated zero would drag p95 and the average down. */
+  const p = inst.getPercentiles('a');
+  eq(p, null, 'unknown-latency node must not produce percentiles');
+  inst.destroy();
+});
+
+check('bad latency values become unknown rather than zero', () => {
+  const { inst } = mount({
+    nodes: [
+      { id: 'a', lat: 1, lon: 2, uptime: 'lots', latency: -5 },
+      { id: 'b', lat: 3, lon: 4, latency: NaN },
+    ],
+    live: false,
+  });
+  eq(inst.getNode('a').uptime, null, 'non-numeric uptime should be null');
+  eq(inst.getNode('a').latency, null, 'negative latency must not become 0');
+  eq(inst.getNode('b').latency, null, 'NaN latency must not become 0');
+  eq(inst._latencyText(inst.getNode('a')), '—');
+  inst.destroy();
+});
+
+check('the average ignores nodes with no reading', () => {
+  const { inst } = mount({
+    nodes: [
+      { id: 'a', lat: 1, lon: 2, latency: 100 },
+      { id: 'b', lat: 3, lon: 4 },              // no reading
+      { id: 'c', lat: 5, lon: 6, status: 'Down' }, // excluded anyway
+    ],
+    live: false, showStats: true,
+  });
+  inst._renderStats();
+  /* One measured node at 100ms: the mean must be 100, not 33. */
+  eq(inst._root.querySelector('[data-npsAvg]').textContent, '100 <small>ms</small>');
+  inst.destroy();
+});
+
+check('unknown-latency nodes sort last, not first', () => {
+  const { inst } = mount({
+    nodes: [
+      { id: 'z', name: 'Unknown', lat: 1, lon: 2 },            // no reading
+      { id: 'a', name: 'Fast',    lat: 3, lon: 4, latency: 5 },
+    ],
+    live: false,
+  });
+  inst.setSort('latency', 1);
+  eq(inst._sortNodes(inst._nodes).map(n => n.id), ['a', 'z'],
+    'unknown latency must sort last, not as 0 ms');
+  inst.destroy();
+});
+
+check('live jitter never invents a reading for an unknown node', () => {
+  const { inst } = mount({ nodes: [{ id: 'a', lat: 1, lon: 2 }], live: true });
+  inst._refresh();
+  inst._refresh();
+  eq(inst.getNode('a').latency, null, 'jitter fabricated a latency');
+  eq(inst._latencyText(inst.getNode('a')), '—');
+  inst.destroy();
+});
+
+check('historyLength option is clamped to a sane range', () => {
+  const a = mount({ nodes: [], historyLength: 9999, live: false });
+  eq(a.inst.options.historyLength, 720, 'unbounded historyLength');
+  a.inst.destroy();
+  const b = mount({ nodes: [], historyLength: -5, live: false });
+  eq(b.inst.options.historyLength, 1, 'negative historyLength');
+  b.inst.destroy();
+  const c = mount({ nodes: [], historyLength: 'abc', live: false });
+  eq(c.inst.options.historyLength, 24, 'non-numeric historyLength should use the default');
+  c.inst.destroy();
+});
+
+check('setNodes ignores non-object entries', () => {
+  const { inst } = mount({ nodes: [], live: false });
+  /* Garbage rows must be dropped, not throw. Guard the test itself so a
+     regression reports as an assertion, not an unhandled TypeError. */
+  inst.setNodes([null, undefined, 'nope', 42, { id: 'ok', lat: 1, lon: 2 }]);
+  eq(inst.getNodes().length, 1);
+  eq(inst.getNodes()[0].id, 'ok');
+  inst.destroy();
+});
+
+check('clearHistory resets samples and status memory', () => {
+  const { inst } = mount({ nodes: [{ id: 'a', lat: 1, lon: 2 }], live: false });
+  eq(inst.getHistory('a').length, 1, 'setNodes should have recorded a sample');
+  inst.clearHistory();
+  eq(inst.getHistory('a').length, 0);
+  inst.destroy();
+});
+
+check('export payload contains state and history', () => {
+  const { inst } = mount({ nodes: [{ id: 'a', lat: 1, lon: 2, latency: 9 }], live: false });
+  eq(inst.getHistory('a').length, 1, 'setNodes should have recorded a sample');
+  const out = inst.exportJSON();
+  eq(!!out.generatedAt, true);
+  eq(out.state.nodes.length, 1);
+  eq(out.history.a.length, 1);
+  inst.destroy();
+});
+
+check('theme switch flips vars, attribute and invert class', () => {
+  const { inst } = mount({ nodes: [], theme: 'dark', live: false });
+  eq(inst._root.getAttribute('data-theme'), 'dark');
+  eq(inst._root.classList.contains('nps-invert'), true, 'dark preset should invert');
+  inst.setTheme('light');
+  eq(inst._root.getAttribute('data-theme'), 'light');
+  eq(inst._root.classList.contains('nps-invert'), false, 'light raster must not invert');
+  eq(inst._root.style.getPropertyValue('--nps-ink'), '#FFFFFF');
+  inst.destroy();
+});
+
+check('autoRefresh:false starts no interval', () => {
+  const { inst } = mount({ nodes: [], autoRefresh: false, live: true });
+  eq(inst._timer, null, 'interval started despite autoRefresh:false');
+  inst.destroy();
+});
+
+check('stopPolling clears the pending poll', () => {
+  const { inst } = mount({ nodes: [], nodesUrl: '/api/x.json', live: false });
+  eq(inst.stopPolling(), inst, 'stopPolling should be chainable');
+  eq(inst._pollTimer, null, 'poll timer not cleared');
   inst.destroy();
 });
 

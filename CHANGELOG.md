@@ -1,9 +1,100 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to this project are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] — 2026-10-08
+## [1.1.0] - 2026-10-08
+
+Advanced feature set. Everything is **opt-in** - v1.0.0 defaults are preserved
+exactly, so upgrading is not a breaking change.
+
+### Added
+
+- **Latency history & sparklines** - a bounded per-node ring buffer
+  (`historyLength`, default 24) rendered as an inline SVG in the tooltip.
+  `getHistory(id)` and `getPercentiles(id)` expose the raw samples.
+- **p95 latency** - a stat card plus a sortable column, computed across all
+  nodes' samples. The mean hides tail latency; p95 matches an SLO.
+- **Trend indicators** - up/down/flat versus the previous samples, suppressed
+  below an 8% change so it does not flicker on noise.
+- **Live polling with exponential backoff** - `poll()`, `startPolling()`,
+  `stopPolling()`. The interval doubles on failure (capped at
+  `refreshMs x 32`) and resets the instant a poll succeeds. Gives up after 8
+  consecutive failures and emits `feedstopped`.
+- **Search, status filter and sorting** - `setSearch`, `setFilter`,
+  `setSort`. Search spans name, region, country, id and provider. Filters and
+  search affect the table only; markers always show every node, because hiding
+  a failing probe behind an active search is how outages get missed.
+- **Sortable table columns** - click, or Tab then Enter/Space, with
+  `aria-sort` maintained. Keyboard-sortable is not optional.
+- **Live theme switch** - `setTheme()` swaps the tile layer, the CSS custom
+  properties and the invert filter.
+- **Incident detection** - `statuschange` fires once per real transition (a
+  no-op `setNodes()` emits nothing), and `recovered` fires specifically on a
+  return to `Operational`.
+- **Feed health indicator** - as an `aria-live` status region. Without it a
+  silently dead feed looks identical to a healthy network.
+- **JSON export** - `exportJSON()` returns `{ generatedAt, state, history }`
+  and triggers a download; callers can POST it instead.
+- **Deep linking** - `deepLink: true` reads `location.hash` and flies to a node.
+- **Persistence** - `persistKey` writes state to `localStorage`; `restore()`
+  reads it back. Guarded throughout, since storage throws in sandboxed frames.
+- **Extra node metadata** - `country`, `provider`, `uptime` and `note` are
+  carried through. `country` and `provider` widen the search index.
+- **Background-tab handling** - `pauseWhenHidden` drops the interval to 60s or
+  more when hidden and re-anchors it on return, avoiding a burst of catch-up
+  refreshes after browser throttling.
+- **Controls bar** - `showControls` adds search, status filters, theme, fit,
+  export and clear-history.
+- **Example 5 (advanced)** - every feature enabled against a live feed.
+- **Dev server flag API** - `/api/flags` and `/api/reset`, so the demo
+  exercises real feed behaviour rather than faking it in the page.
+- **docs/ADVANCED.md** and **docs/DEPLOY.md**.
+- **71 tests**, up from 40.
+
+### Fixed
+
+- **Sortable headers threw on every click.** `_buildPanel` never declared
+  `var self`, so the sort closure resolved `self` to `window.self`. Caught
+  in-browser, not by the test suite.
+- **A polled feed produced empty sparklines forever.** History was recorded
+  only while `live: true`, which is exactly what you should not use with a real
+  feed. `setNodes` now samples incoming data too.
+- **The first sample was recorded twice.** `setNodes` calls `_refresh`
+  internally, so both sampled the same data. Added a `_booting` guard.
+- **Polled samples were double-counted.** With a `nodesUrl`, each poll would
+  have recorded two samples. Guarded, with a test asserting exactly one.
+- **A missing `latency` became `0 ms`.** Fabricated zeros dragged p95 down and
+  made a broken probe look like the fastest node on the map. Latency is now
+  null when unknown: it renders as a dash, records a sparkline gap, and is
+  excluded from the average and p95.
+- **The average counted unmeasured nodes.** A node with no reading yet pulled
+  the mean toward zero. Now averaged over measured nodes only.
+- **Unknown-latency nodes sorted as 0 ms.** They now sort last.
+- **Live jitter fabricated a reading** for a node that had never reported one.
+- **Feed text failed AA contrast** (2.27:1) on a light theme - it used the
+  status palette, whose colours are sized for the dark map. Now uses
+  theme-aware text with a glyph carrying the state.
+- **Attribution links failed contrast in light theme** (1.5:1) for the same
+  reason. Colour now follows `--nps-fg`.
+- **The legend and hint chips failed contrast** (1.98:1) over a light map;
+  their translucent backdrops also made the effective background
+  unpredictable. Both are now opaque and theme-aware.
+- **`_pollTimer` was never initialised**, so `stopPolling()` on a fresh
+  instance reported a stale value.
+
+### Notes on decisions
+
+- **Filters hide table rows, never markers.** A search that also removed
+  failing markers would quietly hide the reason someone opened the page.
+- **Sparklines are `aria-hidden`.** The numbers beside them carry the meaning;
+  announcing a polyline would be noise.
+- **Search indexes provider and country**, not just name, because status pages
+  are usually searched by carrier or region.
+
+---
+
+## [1.0.0] - 2026-10-08
 
 First stable release.
 
@@ -66,7 +157,7 @@ Bugs found and fixed during the pre-release audit. Each has a regression test.
   nodes with zero span, produced an inverted `LatLngBounds`. The span is now checked
   before fitting.
 - **Attribution links failed WCAG 2.5.8.** They rendered at text height (~21px),
-  below the 24×24 target-size floor. Now `inline-block` with padding and a
+  below the 24x24 target-size floor. Now `inline-block` with padding and a
   `min-height`, measured at 24px.
 - **Caller-supplied node objects were mutated in place.** Live probing wrote the
   jittered latency back into the caller's own object. Nodes are now always copied
@@ -76,7 +167,7 @@ Bugs found and fixed during the pre-release audit. Each has a regression test.
 
 - **`osmDark` is the default tile preset, not CartoDB Dark Matter.** CartoDB now
   requires an API key; unauthenticated requests return a fixed 2,394-byte
-  `API KEY REQUIRED` placeholder at every zoom (verified z2–z8, byte-identical
+  `API KEY REQUIRED` placeholder at every zoom (verified z2-z8, byte-identical
   across all three host variants). The `cartoDark` preset remains available for
   users who hold a key.
 - **`minZoom` defaults to 1.** `fitBounds` clamps at `minZoom`, so a narrow or
@@ -98,8 +189,8 @@ Bugs found and fixed during the pre-release audit. Each has a regression test.
 ### Accessibility
 
 Lighthouse accessibility **100**. Keyboard-focusable markers, `role="switch"` on
-the toggle with live `aria-checked`, ≥24×24px targets, AA contrast throughout, a
+the toggle with live `aria-checked`, ≥24x24px targets, AA contrast throughout, a
 real `<table>` mirroring all map data, plus `prefers-reduced-motion` and
 `prefers-contrast` support.
 
-[1.0.0]: https://github.com/your-org/novapulse-edge-map/releases/tag/v1.0.0
+[1.0.0]: https://github.com/SudhirDevOps1/NovaPulse-Map/releases/tag/v1.0.0

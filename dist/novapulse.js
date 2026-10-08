@@ -1,4 +1,4 @@
-/*! NovaPulse Edge Map v1.0.0 | MIT | https://github.com/your-org/novapulse-edge-map */
+/*! NovaPulse Edge Map v1.1.0 | MIT | https://github.com/your-org/novapulse-edge-map */
 /*!
  * NovaPulse Edge Map — v1.0.0
  * Embedded, keyless world map of edge-probe vantage points.
@@ -99,6 +99,14 @@
     return Math.min(hi, Math.max(lo, n));
   }
 
+  /* Integer option with a fallback when the value is absent or unusable.
+     Number(undefined) is NaN, which would poison the value silently. */
+  function clampInt(v, fallback, lo, hi) {
+    var n = Math.round(Number(v));
+    if (!isFinite(n)) return fallback;
+    return clamp(n, lo, hi);
+  }
+
   function escapeHtml(s) {
     return String(s)
       .replace(/&/g, '&amp;')
@@ -180,7 +188,8 @@
     /* Links need inline-block + real padding to clear the 24x24 target-size
    floor; inline links otherwise render at text height (~21px) and fail
    WCAG 2.5.8. */
-'.nps .leaflet-control-attribution a{color:#C7D4E2!important;display:inline-block;padding:4px 2px;min-height:24px;line-height:16px;}',
+/* Link colour tracks the theme; a fixed value fails AA in one of them. */
+'.nps .leaflet-control-attribution a{color:var(--nps-fg,#E2E8F0)!important;display:inline-block;padding:4px 2px;min-height:24px;line-height:16px;}',
     '.nps .leaflet-control-zoom{border:0!important;box-shadow:none!important;display:flex!important;flex-direction:column!important;gap:6px!important;}',
     '.nps .leaflet-control-zoom a,.nps .leaflet-bar a{width:36px!important;height:36px!important;display:grid!important;place-items:center!important;',
     'background:rgba(17,24,35,.94)!important;border:1px solid var(--nps-line,#243244)!important;border-radius:9px!important;',
@@ -193,13 +202,16 @@
     '.nps .leaflet-control-scale-line{background:var(--nps-ink,#0B0F14)!important;border-color:#33455C!important;',
     'color:var(--nps-faint,#9FB0C6)!important;font-size:11px!important;padding:3px 7px!important;}',
 
-    /* legend + hint */
-    '.nps-legend{position:absolute;z-index:500;right:12px;top:12px;background:rgba(11,15,20,.9);border:1px solid var(--nps-line,#243244);',
-    'border-radius:10px;padding:8px 10px;backdrop-filter:blur(8px);display:flex;flex-direction:column;gap:5px;pointer-events:none;}',
-    '.nps-legend div{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--nps-faint,#9FB0C6)}',
+    /* legend + hint
+       Both chips sit ON the map. With a translucent backdrop the effective
+       background is unpredictable, and axe measured 1.98:1 over a light
+       map — so they are opaque and theme-aware. */
+    '.nps-legend{position:absolute;z-index:500;right:12px;top:12px;background:var(--nps-ink,#0B0F14);border:1px solid var(--nps-line,#243244);',
+    'border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:5px;pointer-events:none;}',
+    '.nps-legend div{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--nps-fg,#E2E8F0)}',
     '.nps-legend i{width:8px;height:8px;border-radius:9999px}',
-    '.nps-hint{position:absolute;z-index:500;left:12px;bottom:34px;background:rgba(11,15,20,.88);border:1px solid var(--nps-line,#243244);',
-    'color:var(--nps-faint,#9FB0C6);font-size:11px;padding:5px 9px;border-radius:8px;backdrop-filter:blur(8px);',
+    '.nps-hint{position:absolute;z-index:500;left:12px;bottom:34px;background:var(--nps-ink,#0B0F14);border:1px solid var(--nps-line,#243244);',
+    'color:var(--nps-fg,#E2E8F0);font-size:11px;padding:5px 9px;border-radius:8px;',
     'pointer-events:none;transition:opacity .4s ease;font-family:inherit;}',
 
     /* stats */
@@ -232,6 +244,49 @@
     '.nps-switch i{position:absolute;top:3px;left:2px;width:20px;height:20px;border-radius:999px;background:#fff;transition:transform .22s cubic-bezier(.22,1,.36,1)}',
     '.nps-switch.is-off i{transform:translateX(18px)}',
     '.nps-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}',
+
+    /* controls bar */
+    '.nps-controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 12px 10px}',
+    '.nps-search{flex:1 1 180px;min-width:0;background:var(--nps-soft,#111823);border:1px solid var(--nps-line,#243244);',
+    'border-radius:9px;padding:8px 11px;font:inherit;font-size:.85rem;color:var(--nps-fg,#E2E8F0)}',
+    '.nps-search::placeholder{color:var(--nps-faint,#9FB0C6);opacity:1}',
+    '.nps-search:focus-visible{outline:2px solid #38BDF8;outline-offset:1px}',
+    '.nps-filters{display:flex;gap:4px;flex-wrap:wrap}',
+    '.nps-filter{background:var(--nps-soft,#111823);border:1px solid var(--nps-line,#243244);',
+    'border-radius:999px;padding:7px 12px;font:inherit;font-size:.78rem;font-weight:600;',
+    'color:var(--nps-faint,#9FB0C6);cursor:pointer;min-height:32px;',
+    'transition:background .16s ease,color .16s ease,border-color .16s ease}',
+    '.nps-filter:hover{color:var(--nps-fg,#E2E8F0);border-color:#33455C}',
+    '.nps-filter.is-active{background:#E2E8F0;color:#0B0F14;border-color:transparent}',
+    '.nps-filter:focus-visible{outline:2px solid #38BDF8;outline-offset:2px}',
+    '.nps-actions{display:flex;gap:4px;margin-left:auto}',
+    '.nps-action{width:32px;height:32px;display:grid;place-items:center;',
+    'background:var(--nps-soft,#111823);border:1px solid var(--nps-line,#243244);border-radius:9px;',
+    'color:var(--nps-fg,#E2E8F0);font-size:.9rem;line-height:1;cursor:pointer;',
+    'transition:background .16s ease,border-color .16s ease}',
+    '.nps-action:hover{background:#1B2634;border-color:#33455C}',
+    '.nps-action:focus-visible{outline:2px solid #38BDF8;outline-offset:2px}',
+
+    /* feed status — theme-aware text, never the marker palette */
+    '.nps-feed{margin:8px 12px 0;font-size:.75rem;color:var(--nps-fg,#E2E8F0)}',
+    '.nps-feed.is-error{color:var(--nps-fg,#E2E8F0);font-weight:600}',
+
+    /* trend + sparkline */
+    '.nps-trend{font-size:.7rem;font-weight:700;margin-left:6px}',
+    '.nps-trend.up{color:#F59E0B}.nps-trend.down{color:#22C55E}.nps-trend.flat{color:#9FB0C6}',
+    '.nps-spark{margin-top:10px}',
+    '.nps-spark svg{display:block;width:100%;height:28px;overflow:visible}',
+    '.nps-spark-range{display:block;font-size:.65rem;color:var(--nps-faint,#9FB0C6);margin-top:3px}',
+    '.nps-tip-note{margin-top:8px;font-size:.72rem;color:#CBD5E1;max-width:220px;white-space:normal}',
+
+    /* table extras */
+    '.nps-sub{display:block;font-size:.68rem;font-weight:400;color:var(--nps-faint,#9FB0C6);margin-top:1px}',
+    '.nps-empty{text-align:center;color:var(--nps-faint,#9FB0C6);padding:20px 16px!important;font-weight:400!important}',
+    '.nps-sortable{cursor:pointer;user-select:none;position:relative}',
+    '.nps-sortable:hover{color:var(--nps-fg,#E2E8F0)}',
+    '.nps-sortable:focus-visible{outline:2px solid #38BDF8;outline-offset:-2px}',
+    '.nps-sortable[aria-sort=ascending]::after{content:" \\2191";font-size:.9em}',
+    '.nps-sortable[aria-sort=descending]::after{content:" \\2193";font-size:.9em}',
 
     '@media (prefers-reduced-motion:reduce){',
     '.nps-anim .leaflet-container{animation:none}',
@@ -318,7 +373,25 @@
       scrollWheelZoom: o.scrollWheelZoom !== false,
       emitStateToParent: o.emitStateToParent !== false,
       colors: Object.assign({}, STATUS_COLOR, o.colors || {}),
-      onNodeClick: typeof o.onNodeClick === 'function' ? o.onNodeClick : null
+      onNodeClick: typeof o.onNodeClick === 'function' ? o.onNodeClick : null,
+
+      /* ── Advanced ──────────────────────────────────────────────
+         All opt-in. Defaults below preserve the v1.0.0 behaviour
+         exactly, so upgrading is not a breaking change. */
+      showControls: !!o.showControls,
+      historyLength: clampInt(o.historyLength, 24, 1, 720),
+      showSparklines: !!o.showSparklines,
+      showSearch: !!o.showSearch,
+      sortableTable: o.sortableTable !== false,
+      showTrend: !!o.showTrend,
+      showUptime: !!o.showUptime,
+      autoRefresh: o.autoRefresh !== false,
+      refreshBackoff: o.refreshBackoff !== false,
+      pauseWhenHidden: o.pauseWhenHidden !== false,
+      onFeedError: typeof o.onFeedError === 'function' ? o.onFeedError : null,
+      onStatusChange: typeof o.onStatusChange === 'function' ? o.onStatusChange : null,
+      persistKey: o.persistKey || null,
+      deepLink: !!o.deepLink
     };
 
     this._destroyed = false;
@@ -328,6 +401,18 @@
     this._rendered = [];
     this._timer = null;
     this._offs = [];
+
+    /* ── Advanced state ──────────────────────────────────────────── */
+    this._history = {};      /* id -> [latency, …] ring buffer */
+    this._prevStatus = {};   /* id -> status, for transition alerts */
+    this._query = '';
+    this._filter = 'all';    /* all | Operational | Degraded | Down */
+    this._sort = { key: 'name', dir: 1 };
+    this._consecutiveErrors = 0;
+    this._backoffMs = this.options.refreshMs;
+    this._pollTimer = null;   /* typed here so stopPolling() always has a handle */
+    this._lastOk = null;
+    this._feedStatus = 'idle';   /* idle | ok | error | loading */
 
     if (typeof window === 'undefined' || !window.L) {
       throw new Error('[NovaPulseMap] Leaflet (window.L) not found. Load Leaflet before this script.');
@@ -362,8 +447,8 @@
     /* Host gets the theme vars. */
     host.classList.add('nps');
     host.style.setProperty('--nps-height', o.height + 'px');
-    if (o.theme === 'dark') host.style.setProperty('--nps-ink', '#0B0F14');
-    else host.style.setProperty('--nps-ink', '#FFFFFF');
+    host.setAttribute('data-theme', o.theme === 'light' ? 'light' : 'dark');
+    this._applyThemeVars(o.theme);
 
     host.innerHTML = '';
 
@@ -378,6 +463,7 @@
     host.appendChild(this._frame);
 
     if (o.showToggle) this._buildToggle();
+    if (o.showControls) this._buildControls();
     if (o.showStats || o.showTable) this._buildPanel();
 
     /* ── map ── */
@@ -449,8 +535,29 @@
       setTimeout(function () { self.invalidateSize(); }, 250);
     }));
     this._offs.push(on(document, 'visibilitychange', function () {
-      if (!document.hidden) self.invalidateSize();
+      if (document.hidden) {
+        self.invalidateSize();
+        /* A hidden tab still runs timers. Suspending saves the user's
+           battery and avoids a thundering herd on the feed endpoint. */
+        if (self.options.pauseWhenHidden) {
+          self._wasLive = self._live;
+          self._start();
+        }
+        return;
+      }
+      self.invalidateSize();
+      if (self.options.pauseWhenHidden) {
+        if (self._wasLive !== undefined) { self.setLive(self._wasLive); self._wasLive = undefined; }
+        /* The interval may have been throttled to ~1/min by the browser
+           while hidden; re-anchor it so it doesn't fire immediately. */
+        self._start();
+      }
     }));
+
+    if (o.deepLink) {
+      this._syncDeepLink();
+      this._offs.push(on(window, 'hashchange', function () { self._syncDeepLink(); }));
+    }
 
     if (o.showHint) this._buildHint();
 
@@ -470,8 +577,13 @@
       this._offs.push(on(window, 'message', function (ev) { self._onMessage(ev); }));
     }
 
+    /* setNodes() samples the initial data and internally calls _refresh().
+       While booting, _refresh must not sample again, or the first tick is
+       recorded twice and the sparkline opens with a duplicated point. */
+    this._booting = true;
     this.setNodes(o.nodes);
     this._fit();
+    this._booting = false;
 
     this._start();
     this.emit('ready', this.getState());
@@ -522,6 +634,163 @@
     btn.addEventListener('click', function () { self.setLive(!self._live); });
   };
 
+  /* ── Controls bar: search, status filter, theme, expand ──────────── */
+  NovaPulseMap.prototype._buildControls = function () {
+    var self = this;
+    var o = this.options;
+    var bar = document.createElement('div');
+    bar.className = 'nps-controls';
+
+    if (o.showSearch) {
+      var search = document.createElement('input');
+      search.type = 'search';
+      search.className = 'nps-search';
+      search.placeholder = 'Search nodes…';
+      search.setAttribute('aria-label', 'Search vantage points');
+      search.value = this._query;
+      search.addEventListener('input', function () { self.setSearch(search.value); });
+      search.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { search.value = ''; self.setSearch(''); }
+      });
+      bar.appendChild(search);
+      this._searchEl = search;
+    }
+
+    if (o.showTable) {
+      var group = document.createElement('div');
+      group.className = 'nps-filters';
+      group.setAttribute('role', 'group');
+      group.setAttribute('aria-label', 'Filter by status');
+
+      [['all', 'All'], ['Operational', 'Operational'], ['Degraded', 'Degraded'], ['Down', 'Down']]
+        .forEach(function (pair) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'nps-filter';
+          b.dataset.filter = pair[0];
+          b.textContent = pair[1];
+          b.setAttribute('aria-pressed', pair[0] === self._filter ? 'true' : 'false');
+          if (pair[0] === self._filter) b.classList.add('is-active');
+          b.addEventListener('click', function () { self.setFilter(pair[0]); });
+          group.appendChild(b);
+        });
+      bar.appendChild(group);
+    }
+
+    /* Theme + fit + export, grouped right. */
+    var right = document.createElement('div');
+    right.className = 'nps-actions';
+
+    this._themeBtn = this._action(right, '◐', 'Toggle light / dark theme', function () {
+      self.setTheme(self.options.theme === 'dark' ? 'light' : 'dark');
+    });
+
+    this._action(right, '⤢', 'Fit all nodes in view', function () { self.fit(); });
+
+    this._action(right, '↧', 'Export node data as JSON', function () { self.exportJSON(); });
+    this._action(right, '⨯', 'Clear latency history', function () { self.clearHistory(); });
+
+    bar.appendChild(right);
+    this._root.insertBefore(bar, this._frame);
+    this._controlsEl = bar;
+  };
+
+  NovaPulseMap.prototype._action = function (parent, glyph, label, fn) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'nps-action';
+    b.textContent = glyph;
+    b.title = label;
+    b.setAttribute('aria-label', label);
+    b.addEventListener('click', fn);
+    parent.appendChild(b);
+    return b;
+  };
+
+  NovaPulseMap.prototype._applyThemeVars = function (theme) {
+    var host = this._root;
+    if (!host) return;
+    var dark = theme !== 'light';
+    host.setAttribute('data-theme', dark ? 'dark' : 'light');
+    host.style.setProperty('--nps-ink',   dark ? '#0B0F14' : '#FFFFFF');
+    host.style.setProperty('--nps-soft',  dark ? '#111823' : '#F1F5F9');
+    host.style.setProperty('--nps-line',  dark ? '#243244' : '#CBD5E1');
+    host.style.setProperty('--nps-fg',    dark ? '#E2E8F0' : '#0F172A');
+    host.style.setProperty('--nps-faint', dark ? '#9FB0C6' : '#475569');
+  };
+
+  NovaPulseMap.prototype.setTheme = function (theme) {
+    var host = this._root;
+    if (!host) return this;
+    var dark = theme !== 'light';
+
+    this.options.theme = dark ? 'dark' : 'light';
+    this._applyThemeVars(dark ? 'dark' : 'light');
+
+    /* The invert filter is a property of the TILE, not the theme. Re-point
+       the layer so the new theme renders correctly. */
+    var preset = TILES[dark ? 'osmDark' : 'osmLight'];
+    host.classList.toggle('nps-invert', !!preset.invert);
+
+    if (this._layer && this._map) {
+      this._map.removeLayer(this._layer);
+      var cfg = { attribution: preset.attribution || '' };
+      if (preset.maxZoom) cfg.maxZoom = preset.maxZoom;
+      if (preset.subdomains) cfg.subdomains = preset.subdomains;
+      this._layer = L.tileLayer(this.options.tileUrl || preset.url, cfg);
+      this._layer.addTo(this._map);
+    }
+
+    this.emit('themechange', this.options.theme);
+    return this;
+  };
+
+  /* Client-side export so a status page can offer its data without a
+     round trip. Returns the object too, so callers can post it. */
+  NovaPulseMap.prototype.exportJSON = function () {
+    var payload = {
+      generatedAt: new Date().toISOString(),
+      state: this.getState(),
+      history: this._history
+    };
+    try {
+      var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'novapulse-probes.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      /* Revoke on the next tick; revoking synchronously cancels the
+         download in some browsers. */
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    } catch (e) { /* download is a convenience, not the contract */ }
+    return payload;
+  };
+
+  /* ── Deep link: ?node=id or #node=id focuses a marker ─────────── */
+  NovaPulseMap.prototype.focusNode = function (id) {
+    var node = this.getNode(id);
+    if (!node || !this._map) return this;
+    this._interacted = true;
+    this._map.setView([node.lat, node.lon], Math.max(this._map.getZoom(), 5), { animate: true });
+    this.emit('focus', node);
+    return this;
+  };
+
+  NovaPulseMap.prototype._syncDeepLink = function () {
+    if (!this.options.deepLink || this._destroyed) return;
+    try {
+      var hash = (window.location.hash || '').replace(/^#/, '');
+      var prev = this._deepNode;
+      if (hash !== prev) {
+        this._deepNode = hash;
+        if (hash) this.focusNode(hash);
+      }
+    } catch (e) { /* cross-origin or sandboxed */ }
+  };
+
   NovaPulseMap.prototype._buildLegend = function () {
     var el = document.createElement('div');
     el.className = 'nps-legend';
@@ -548,15 +817,33 @@
 
   NovaPulseMap.prototype._buildPanel = function () {
     var o = this.options;
+    /* Needed by the sortable-header closure below. Without it, `self`
+       resolved to window.self and every header click threw. */
+    var self = this;
     var box = document.createElement('div');
     if (o.showStats) {
       var stats = document.createElement('div');
       stats.className = 'nps-stats';
       addCard(stats, 'Avg latency', 'npsAvg');
+      if (o.showSparklines) {
+        addCard(stats, 'p95 latency', 'npsP95');
+        this._p95El = stats.querySelector('[data-npsP95]');
+      }
       addCard(stats, 'Online', 'npsUp');
       addCard(stats, 'Degraded', 'npsWarn');
       addCard(stats, 'Down', 'npsDown');
+
+      /* Feed health. Only meaningful when actually polling. */
+      if (o.nodesUrl || o.autoRefresh) {
+        var feed = document.createElement('p');
+        feed.className = 'nps-feed';
+        feed.setAttribute('role', 'status');
+        feed.setAttribute('aria-live', 'polite');
+        feed.textContent = 'Idle';
+        this._feedEl = feed;
+      }
       box.appendChild(stats);
+      if (this._feedEl) box.appendChild(this._feedEl);
     }
     if (o.showTable) {
       var wrap = document.createElement('div');
@@ -570,13 +857,43 @@
       caption.textContent = 'Edge probe vantage points, coordinates, latency and status';
       table.appendChild(caption);
 
+      /* Column set depends on which optional metrics are enabled, and the
+         header must stay in lockstep with _renderTable's cells. */
+      var cols = ['Vantage point', 'Coordinates', 'Latency'];
+      if (o.showSparklines) cols.push('p95');
+      if (o.showUptime) cols.push('Uptime');
+      cols.push('Status');
+
       var thead = document.createElement('thead');
       var hrow = document.createElement('tr');
-      ['Vantage point', 'Coordinates', 'Latency', 'Status'].forEach(function (label, i) {
+      cols.forEach(function (label, i) {
         var th = document.createElement('th');
         th.setAttribute('scope', 'col');
-        if (i > 1) th.style.textAlign = 'right';
+        var numeric = label !== 'Vantage point' && label !== 'Coordinates';
+        if (numeric) th.style.textAlign = 'right';
         th.textContent = label;
+
+        if (o.sortableTable && label !== 'Vantage point') {
+          var sortKey = { 'Latency': 'latency', 'p95': 'p95', 'Uptime': 'uptime',
+                          'Status': 'status', 'Coordinates': 'region' }[label];
+          if (sortKey) {
+            th.className = 'nps-sortable';
+            th.setAttribute('tabindex', '0');
+            th.setAttribute('role', 'columnheader');
+            th.setAttribute('aria-sort', 'none');
+            var doSort = function () {
+              var dir = (self._sort.key === sortKey && self._sort.dir === 1) ? -1 : 1;
+              self.setSort(sortKey, dir);
+              var heads = wrap.querySelectorAll('.nps-sortable');
+              for (var i = 0; i < heads.length; i++) heads[i].setAttribute('aria-sort', 'none');
+              th.setAttribute('aria-sort', dir === 1 ? 'ascending' : 'descending');
+            };
+            th.addEventListener('click', doSort);
+            th.addEventListener('keydown', function (e) {
+              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doSort(); }
+            });
+          }
+        }
         hrow.appendChild(th);
       });
       thead.appendChild(hrow);
@@ -614,34 +931,184 @@
 
   NovaPulseMap.prototype._normalize = function (nodes) {
     var self = this;
-    return (nodes || []).map(function (n, i) {
+    var out = [];
+
+    (nodes || []).forEach(function (n, i) {
+      if (!n || typeof n !== 'object') return;
+
       /* Coerce, but reject anything that is not a real coordinate.
          Number(null) === 0 and Number('') === 0, so a null/blank field
          would otherwise land the node off the coast of Africa. */
-      var lat = n.lat === null || n.lat === '' || n.lat === undefined ? NaN : Number(n.lat);
-      var lon = n.lon === null || n.lon === '' || n.lon === undefined ? NaN : Number(n.lon);
-      if (!isFinite(lat) || !isFinite(lon)) return null;
-      if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+      var lat = (n.lat === null || n.lat === '' || n.lat === undefined) ? NaN : Number(n.lat);
+      var lon = (n.lon === null || n.lon === '' || n.lon === undefined) ? NaN : Number(n.lon);
+      if (!isFinite(lat) || !isFinite(lon)) return;
+      if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return;
+
       var status = n.status || 'Operational';
-      return {
-        id: n.id || String(i),
+      if (!self.options.colors[status]) status = 'Operational';
+
+      /* An absent latency is UNKNOWN, not 0 ms. Defaulting it to 0 faked a
+         perfect reading in the table and poisoned p95 with a real zero.
+         Keep it as null and let the display render an em dash. */
+      var hasLatency = typeof n.latency === 'number' || typeof n.ms === 'number';
+      var latency = hasLatency
+        ? (typeof n.latency === 'number' ? n.latency : n.ms)
+        : null;
+      if (latency !== null && (!isFinite(latency) || latency < 0)) latency = null;
+
+      out.push({
+        id: n.id === undefined || n.id === null ? String(i) : String(n.id),
         name: n.name || ('Node ' + (i + 1)),
         region: n.region || '',
+        /* Optional metadata carried straight through to the table. */
+        provider: n.provider || '',
+        country: n.country || '',
+        uptime: isFinite(Number(n.uptime)) ? Number(n.uptime) : null,
+        note: n.note || '',
         lat: lat,
         lon: lon,
-        status: self.options.colors[status] ? status : 'Operational',
-        latency: typeof n.latency === 'number' ? n.latency : (typeof n.ms === 'number' ? n.ms : 0)
-      };
-    }).filter(Boolean);
+        status: status,
+        latency: latency,
+        hasLatency: hasLatency
+      });
+    });
+
+    /* Carry history and prior status forward across setNodes() so a
+       live feed doesn't wipe the sparklines on every poll. */
+    out.forEach(function (v) {
+      var prev = self._history[v.id];
+      if (prev) self._history[v.id] = prev;
+      else self._history[v.id] = [];
+    });
+
+    /* Drop history for nodes that no longer exist, so the map cannot grow
+       without bound when nodes churn. */
+    var live = {};
+    out.forEach(function (v) { live[v.id] = true; });
+    Object.keys(self._history).forEach(function (id) {
+      if (!live[id]) delete self._history[id];
+    });
+
+    return out;
   };
 
   NovaPulseMap.prototype.setNodes = function (nodes) {
     this._nodes = this._normalize(nodes);
+    /* Sample incoming data too. History used to be recorded only while
+       live:true, which meant a real polled feed (live:false, the
+       recommended setting) produced empty sparklines forever. */
+    this._nodes.forEach(function (v) { this._pushHistory(v); }, this);
+    this._detectTransitions();
     this._renderTable();
     this._renderMarkers();
     this._refresh();
+    this._persist();
     this._post({ type: 'nodes', count: this._nodes.length });
     return this;
+  };
+
+  /* ── Status transitions ────────────────────────────────────────────
+     Fired when a node changes status, which is what an alerting hook
+     wants — not on every poll. */
+  NovaPulseMap.prototype._detectTransitions = function () {
+    var self = this;
+    this._nodes.forEach(function (v) {
+      var was = self._prevStatus[v.id];
+      self._prevStatus[v.id] = v.status;
+      if (was === undefined || was === v.status) return;
+
+      var detail = { id: v.id, name: v.name, from: was, to: v.status, at: Date.now() };
+      self.emit('statuschange', detail);
+      if (self.options.onStatusChange) self.options.onStatusChange(detail, self);
+
+      /* Recovery is the case worth shouting about. */
+      if (v.status === 'Operational' && was !== 'Operational') {
+        self.emit('recovered', detail);
+      }
+    });
+  };
+
+  /* ── Latency history ─────────────────────────────────────────────── */
+
+  /* Down and unknown-latency nodes both record null: the sparkline shows a
+       gap rather than a fabricated 0 ms. */
+  NovaPulseMap.prototype._pushHistory = function (v) {
+    var h = this._history[v.id];
+    if (!h) { h = this._history[v.id] = []; }
+    var known = v.status !== 'Down' && v.hasLatency !== false &&
+                v.latency !== null && isFinite(v.latency);
+    h.push(known ? v.latency : null);
+    var max = this.options.historyLength;
+    while (h.length > max) h.shift();
+  };
+
+  NovaPulseMap.prototype.getHistory = function (id) {
+    return (this._history[id] || []).slice();
+  };
+
+  NovaPulseMap.prototype.clearHistory = function () {
+    this._history = {};
+    this._prevStatus = {};
+    this._renderTable();
+    return this;
+  };
+
+  /* Percentiles need sorting; p50 is the median. Returns null when
+     there is no usable sample. */
+  NovaPulseMap.prototype.getPercentiles = function (id) {
+    var samples = (this._history[id] || []).filter(function (x) {
+      return x !== null && isFinite(x);
+    });
+    if (!samples.length) return null;
+    var sorted = samples.slice().sort(function (a, b) { return a - b; });
+    function at(p) {
+      var idx = clampInt(Math.ceil((p / 100) * sorted.length) - 1, 0, 0, sorted.length - 1);
+      return sorted[idx];
+    }
+    var sum = sorted.reduce(function (a, b) { return a + b; }, 0);
+    return {
+      samples: sorted.length,
+      min: sorted[0],
+      p50: at(50),
+      p95: at(95),
+      p99: at(99),
+      max: sorted[sorted.length - 1],
+      mean: Math.round(sum / sorted.length)
+    };
+  };
+
+  /* ── Persistence ─────────────────────────────────────────────────── */
+
+  NovaPulseMap.prototype._persist = function () {
+    var key = this.options.persistKey;
+    if (!key || this._destroyed) return;
+    try {
+      /* Deliberately not localStorage here: the caller may be in a
+         sandboxed iframe where access throws. Guarded either way. */
+      var store = (typeof window !== 'undefined') && window.localStorage;
+      if (!store) return;
+      store.setItem(key, JSON.stringify({
+        nodes: this._nodes,
+        live: this._live,
+        at: Date.now()
+      }));
+    } catch (e) { /* quota or disabled storage — not fatal */ }
+  };
+
+  NovaPulseMap.prototype.restore = function () {
+    var key = this.options.persistKey;
+    if (!key) return null;
+    try {
+      var raw = window.localStorage.getItem(key);
+      if (!raw) return null;
+      var data = JSON.parse(raw);
+      if (data && Array.isArray(data.nodes)) {
+        this.setNodes(data.nodes);
+        this.setLive(data.live !== false);
+        return data;
+      }
+    } catch (e) { /* corrupt payload — start clean */ }
+    return null;
   };
 
   NovaPulseMap.prototype.getNodes = function () {
@@ -740,13 +1207,91 @@
 
   NovaPulseMap.prototype._tipNode = function (v) {
     var c = this.options.colors[v.status];
-    return '<div style="--c:' + c + '">' +
+    var html = '<div style="--c:' + c + '">' +
       '<div class="nps-tip-name">' + escapeHtml(v.name) + '</div>' +
-      (v.region ? '<div class="nps-tip-city">' + escapeHtml(v.region) + '</div>' : '') +
+      ((v.region || v.country) ? '<div class="nps-tip-city">' +
+        escapeHtml([v.country, v.region].filter(Boolean).join(' · ')) + '</div>' : '') +
       '<div class="nps-tip-row"><span class="nps-tip-k">Latency</span>' +
-      '<span class="nps-tip-lat">' + (v.status === 'Down' ? '—' : v.latency + ' ms') + '</span></div>' +
+      '<span class="nps-tip-lat">' + (this._latencyText(v)) +
+      this._trendArrow(v) + '</span></div>';
+
+    if (this.options.showSparklines) html += this._sparkline(v);
+
+    var p = this.options.showSparklines ? this.getPercentiles(v.id) : null;
+    if (p) {
+      html += '<div class="nps-tip-row"><span class="nps-tip-k">p50 / p95</span>' +
+        '<span class="nps-tip-lat">' + p.p50 + ' / ' + p.p95 + ' ms</span></div>';
+    }
+    if (v.uptime !== null) {
+      html += '<div class="nps-tip-row"><span class="nps-tip-k">Uptime 90d</span>' +
+        '<span class="nps-tip-lat">' + v.uptime.toFixed(2) + '%</span></div>';
+    }
+    if (v.note) {
+      html += '<div class="nps-tip-note">' + escapeHtml(v.note) + '</div>';
+    }
+
+    return html +
       '<div class="nps-tip-row"><span class="nps-tip-k">Status</span>' +
       '<span class="nps-tip-badge"><i></i>' + v.status + '</span></div></div>';
+  };
+
+  /* One place decides how a latency renders, so the table, tooltip and
+     export can never disagree about whether a reading exists. */
+  NovaPulseMap.prototype._latencyText = function (v) {
+    if (v.status === 'Down') return '—';
+    if (v.hasLatency === false || v.latency === null || !isFinite(v.latency)) return '—';
+    return v.latency + ' ms';
+  };
+
+  NovaPulseMap.prototype._latencyValue = function (v) {
+    if (v.status === 'Down') return Infinity;   /* sorts worst */
+    if (v.hasLatency === false || v.latency === null || !isFinite(v.latency)) return Infinity;
+    return v.latency;
+  };
+
+  /* Compares the last two samples. Kept cheap and honest — no fake
+     precision, and no arrow when there isn't enough history. */
+  NovaPulseMap.prototype._trendArrow = function (v) {
+    var h = this._history[v.id];
+    if (!this.options.showTrend || !h || h.length < 4) return '';
+    var tail = h.filter(function (x) { return x !== null; });
+    if (tail.length < 4) return '';
+    var recent = tail.slice(-3).reduce(function (a, b) { return a + b; }, 0) / 3;
+    var prior = tail.slice(-9, -3);
+    if (!prior.length) return '';
+    var base = prior.reduce(function (a, b) { return a + b; }, 0) / prior.length;
+    var delta = ((recent - base) / Math.max(base, 1)) * 100;
+    if (Math.abs(delta) < 8) return '<span class="nps-trend flat">→</span>';
+    if (delta > 0) return '<span class="nps-trend up" title="' +
+      Math.round(delta) + '% slower">↑ ' + Math.round(delta) + '%</span>';
+    return '<span class="nps-trend down" title="' +
+      Math.round(-delta) + '% faster">↓ ' + Math.round(-delta) + '%</span>';
+  };
+
+  /* Inline SVG sparkline. Uses preserveAspectRatio="none" so it stretches
+     to the tooltip width without recomputing points per pixel. */
+  NovaPulseMap.prototype._sparkline = function (v) {
+    var h = (this._history[v.id] || []).filter(function (x) { return x !== null; });
+    if (h.length < 2) return '';
+    var W = 160, H = 28, PAD = 2;
+    var min = Math.min.apply(null, h);
+    var max = Math.max.apply(null, h);
+    var span = (max - min) || 1;
+    var step = W / (h.length - 1);
+
+    var pts = h.map(function (y, i) {
+      var x = +(i * step).toFixed(1);
+      var yy = +(H - PAD - ((y - min) / span) * (H - PAD * 2)).toFixed(1);
+      return x + ',' + yy;
+    });
+
+    var c = this.options.colors[v.status];
+    return '<div class="nps-spark" aria-hidden="true">' +
+      '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H +
+      '" preserveAspectRatio="none">' +
+      '<polyline fill="none" stroke="' + c + '" stroke-width="1.5" ' +
+      'stroke-linejoin="round" stroke-linecap="round" points="' + pts.join(' ') + '"/>' +
+      '</svg><span class="nps-spark-range">' + min + '–' + max + ' ms</span></div>';
   };
 
   NovaPulseMap.prototype._tipCluster = function (group, status) {
@@ -775,9 +1320,20 @@
     if (this._destroyed || !this._map) return;
     var self = this;
 
-    if (this._live) {
+    /* Sample BEFORE jittering, so the sparkline plots the measurement that
+       produced the displayed number. A Down node records null — a gap,
+       not a zero, which would fake a healthy 0 ms reading.
+
+       setNodes() records incoming samples too, so this is skipped while
+       polling; otherwise every poll would be counted twice. */
+    if (this._live && !this.options.nodesUrl && !this._booting) {
       this._nodes.forEach(function (v) {
-        if (v.status !== 'Down') v.latency = self._jitter(v);
+        self._pushHistory(v);
+        if (v.status !== 'Down' && v.hasLatency !== false) v.latency = self._jitter(v);
+      });
+    } else if (this._live && !this._booting) {
+      this._nodes.forEach(function (v) {
+        if (v.status !== 'Down' && v.hasLatency !== false) v.latency = self._jitter(v);
       });
     }
 
@@ -799,13 +1355,80 @@
 
     this._renderRows();
     this._renderStats();
+    this._persist();
     this._post({ type: 'state', state: this.getState() });
   };
 
   /* ── Panels ───────────────────────────────────────────────────────── */
 
+  /* ── Filtering, search, sorting ─────────────────────────────────── */
+
+  NovaPulseMap.prototype._visible = function () {
+    var q = this._query.toLowerCase();
+    var f = this._filter;
+    return this._nodes.filter(function (v) {
+      if (f !== 'all' && v.status !== f) return false;
+      if (!q) return true;
+      return (v.name + ' ' + v.region + ' ' + v.country + ' ' + v.id + ' ' + v.provider)
+        .toLowerCase().indexOf(q) !== -1;
+    });
+  };
+
+  NovaPulseMap.prototype._sortNodes = function (list) {
+    var s = this._sort;
+    var self = this;
+    var get = {
+      name: function (v) { return (v.name || '').toLowerCase(); },
+      latency: function (v) { return self._latencyValue(v); },
+      status: function (v) { return STATUS_RANK[v.status] || 0; },
+      region: function (v) { return (v.region || '').toLowerCase(); },
+      uptime: function (v) { return v.uptime === null ? -1 : v.uptime; },
+      p95: function (v) { var p = self.getPercentiles(v.id); return p ? p.p95 : -1; }
+    };
+    var key = get[s.key] || get.name;
+    return list.slice().sort(function (a, b) {
+      var A = key(a), B = key(b);
+      if (A < B) return -1 * s.dir;
+      if (A > B) return 1 * s.dir;
+      return 0;
+    });
+  };
+
+  NovaPulseMap.prototype.setFilter = function (status) {
+    this._filter = status || 'all';
+    this._renderTable();
+    this._syncControls();
+    return this;
+  };
+
+  NovaPulseMap.prototype.setSearch = function (q) {
+    this._query = q || '';
+    this._renderTable();
+    if (this._searchEl) this._searchEl.value = this._query;
+    return this;
+  };
+
+  NovaPulseMap.prototype.setSort = function (key, dir) {
+    this._sort = { key: key || 'name', dir: dir === -1 ? -1 : 1 };
+    this._renderTable();
+    return this;
+  };
+
+  NovaPulseMap.prototype._syncControls = function () {
+    if (!this._root || !this._root.querySelectorAll) return;
+    var btns = this._root.querySelectorAll('.nps-filter');
+    for (var i = 0; i < btns.length; i++) {
+      var on = !!(btns[i].dataset && btns[i].dataset.filter === this._filter);
+      btns[i].classList.toggle('is-active', on);
+      btns[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+  };
+
+  /* ── Stats ──────────────────────────────────────────────────────── */
+
   NovaPulseMap.prototype._renderStats = function () {
     if (!this.options.showStats) return;
+    var self = this;
     var nodes = this._nodes;
     var up = 0, warn = 0, down = 0, alive = [];
     nodes.forEach(function (v) {
@@ -813,9 +1436,25 @@
       else if (v.status === 'Degraded') { warn++; alive.push(v); }
       else { up++; alive.push(v); }
     });
-    var avg = alive.length
-      ? Math.round(alive.reduce(function (s, v) { return s + v.latency; }, 0) / alive.length)
+    /* Mean over nodes that actually reported a number. A node with no
+       reading yet must not drag the average toward zero. */
+    var measured = alive.filter(function (v) { return isFinite(self._latencyValue(v)); });
+    var avg = measured.length
+      ? Math.round(measured.reduce(function (s, v) { return s + v.latency; }, 0) / measured.length)
       : 0;
+
+    /* Global p95 — the number that matters more than a mean for a
+       latency SLO, since means hide tail latency. */
+    var all = [];
+    nodes.forEach(function (v) {
+      (self._history[v.id] || []).forEach(function (x) {
+        if (x !== null && isFinite(x)) all.push(x);
+      });
+    });
+    all.sort(function (a, b) { return a - b; });
+    var p95 = all.length
+      ? all[clampInt(Math.ceil(0.95 * all.length) - 1, 0, 0, all.length - 1)]
+      : null;
 
     var set = function (key, val, color) {
       var el = this._root.querySelector('[data-' + key + ']');
@@ -824,6 +1463,7 @@
       if (color) el.style.color = color;
     };
     set.call(this, 'npsAvg', avg + ' <small>ms</small>');
+    if (this._p95El) this._p95El.textContent = p95 === null ? '—' : p95 + ' ms';
     set.call(this, 'npsUp', (up + warn) + ' <small>/' + nodes.length + '</small>', this.options.colors.Operational);
     set.call(this, 'npsWarn', warn, this.options.colors.Degraded);
     set.call(this, 'npsDown', down, this.options.colors.Down);
@@ -837,28 +1477,166 @@
       banner.style.background = c + '22';
       banner.style.borderColor = c + '55';
     }
+
+    /* Feed health, so a silent polling failure reads as a broken feed
+       rather than a network that simply stopped changing.
+
+       Colour comes from the theme's muted text, NOT the status palette:
+       green/red are marker colours that sit on the dark map, and at
+       12px on a white theme they measured 2.27:1. A leading glyph plus
+       the wording carries the state; the text colour stays AA. */
+    if (this._feedEl) {
+      var fs = this._feedStatus;
+      this._feedEl.textContent =
+          fs === 'ok'       ? '\u2713 Updated ' + new Date(this._lastOk).toLocaleTimeString()
+        : fs === 'error'   ? '\u26A0 Feed unreachable'
+        : fs === 'loading' ? '\u2026 Updating'
+        : 'Idle';
+      this._feedEl.classList.toggle('is-error', fs === 'error');
+      this._feedEl.classList.toggle('is-live', fs === 'ok');
+    }
+  };
+
+  /* ── Live feed: polling with exponential backoff ────────────────── */
+
+  NovaPulseMap.prototype.poll = function (url) {
+    var self = this;
+    var endpoint = url || this.options.nodesUrl;
+    if (!endpoint || this._destroyed || typeof fetch !== 'function') {
+      return Promise.resolve(null);
+    }
+
+    this._feedStatus = 'loading';
+    this._renderStats();
+
+    return fetch(endpoint, { cache: 'no-store', credentials: 'same-origin' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        var list = Array.isArray(data) ? data : (data && data.nodes);
+        if (!Array.isArray(list)) throw new Error('expected an array or { nodes: [] }');
+
+        self._consecutiveErrors = 0;
+        self._backoffMs = self.options.refreshMs;   /* recovered */
+        self._feedStatus = 'ok';
+        self._lastOk = Date.now();
+        self.setNodes(list);
+        self.emit('feed', { nodes: list.length, at: self._lastOk });
+        return list;
+      })
+      .catch(function (err) {
+        self._consecutiveErrors++;
+        self._feedStatus = 'error';
+
+        /* Hammering a failing endpoint earns a rate limit and makes
+           recovery slower. Grow the interval, but cap the growth. */
+        if (self.options.refreshBackoff) {
+          self._backoffMs = Math.min(
+            self.options.refreshMs * Math.pow(2, Math.min(self._consecutiveErrors, 6)),
+            self.options.refreshMs * 32
+          );
+        }
+
+        var detail = {
+          error: err && err.message ? err.message : String(err),
+          attempts: self._consecutiveErrors,
+          url: endpoint
+        };
+        self.emit('error', detail);
+        if (self.options.onFeedError) self.options.onFeedError(detail, self);
+        self._renderStats();
+        return null;
+      });
+  };
+
+  NovaPulseMap.prototype.startPolling = function (url) {
+    var self = this;
+    this.stopPolling();
+    var run = function () {
+      self.poll(url).then(function () {
+        if (self._destroyed) return;
+        /* Give up only after sustained failure, so a blip never kills
+           the feed permanently. */
+        if (self._feedStatus === 'error' && self._consecutiveErrors > 8) {
+          self.emit('feedstopped', { attempts: self._consecutiveErrors });
+          return;
+        }
+        self._pollTimer = setTimeout(run, self._backoffMs || self.options.refreshMs);
+      });
+    };
+    run();
+    return this;
+  };
+
+  NovaPulseMap.prototype.stopPolling = function () {
+    if (this._pollTimer) { clearTimeout(this._pollTimer); this._pollTimer = null; }
+    return this;
   };
 
   NovaPulseMap.prototype._renderTable = function () {
     if (!this._rows) return;
     var self = this;
-    this._rows.innerHTML = this._nodes.map(function (v) {
+    var sorted = this._sortNodes(this._visible());
+
+    if (!sorted.length) {
+      this._rows.innerHTML = '<tr><td colspan="6" class="nps-empty">' +
+        (this._nodes.length ? 'No nodes match this filter.'
+                            : 'No probe data.') + '</td></tr>';
+      return;
+    }
+
+    this._rows.innerHTML = sorted.map(function (v) {
       var c = self.options.colors[v.status];
-      return '<tr><th scope="row"><span class="nps-dotmark" style="background:' + c + '"></span>' +
-        escapeHtml(v.name) + '</th>' +
+      var p = self.options.showSparklines ? self.getPercentiles(v.id) : null;
+
+      return '<tr>' +
+        '<th scope="row"><span class="nps-dotmark" style="background:' + c + '"></span>' +
+          escapeHtml(v.name) +
+          (v.country ? '<span class="nps-sub">' + escapeHtml(v.country) + '</span>' : '') +
+        '</th>' +
         '<td class="nps-coord">' + v.lat.toFixed(4) + ', ' + v.lon.toFixed(4) + '</td>' +
         '<td class="nps-num" data-lat="' + v.id + '">—</td>' +
-        '<td class="nps-stat-cell"><span class="nps-pill" data-badge="' + v.id + '" style="color:' + c +
-        ';background:' + c + '22;border-color:' + c + '55">' + v.status + '</span></td></tr>';
+        (self.options.showSparklines
+          ? '<td class="nps-num" data-p95="' + v.id + '">' +
+            (p ? p.p95 + ' ms' : '—') + '</td>' : '') +
+        (self.options.showUptime
+          ? '<td class="nps-num" data-up="' + v.id + '">' +
+            (v.uptime === null ? '—' : v.uptime.toFixed(2) + '%') + '</td>' : '') +
+        '<td class="nps-stat-cell"><span class="nps-pill" data-badge="' + v.id +
+          '" style="color:' + c + ';background:' + c + '22;border-color:' + c + '55">' +
+          v.status + '</span></td>' +
+      '</tr>';
     }).join('');
   };
 
+  /* Cells are patched in place on every tick. Rebuilding the rows here
+     would discard the user's sort order, scroll position and any in-cell
+     selection roughly four times a minute. */
   NovaPulseMap.prototype._renderRows = function () {
     if (!this._rows) return;
     var self = this;
+
+    /* Only rows currently in the DOM are visible, so only those can be
+       stale — and a node hidden by the filter is intentionally skipped. */
+    var visible = {};
+    this._visible().forEach(function (v) { visible[v.id] = true; });
+
     this._nodes.forEach(function (v) {
+      if (!visible[v.id]) return;
+
       var cell = self._rows.querySelector('[data-lat="' + v.id + '"]');
-      if (cell) cell.textContent = v.status === 'Down' ? '—' : v.latency + ' ms';
+      if (cell) cell.textContent = self._latencyText(v);
+
+      if (self.options.showSparklines) {
+        var p95 = self._rows.querySelector('[data-p95="' + v.id + '"]');
+        if (p95) {
+          var p = self.getPercentiles(v.id);
+          p95.textContent = p ? p.p95 + ' ms' : '—';
+        }
+      }
+
       var pill = self._rows.querySelector('[data-badge="' + v.id + '"]');
       if (pill) {
         var c = self.options.colors[v.status];
@@ -893,9 +1671,23 @@
 
   /* ── Timer ────────────────────────────────────────────────────────── */
 
+  /* Interval is anchored by a deadline rather than chained .then() so a
+     backgrounded tab can't cause a burst of catch-up refreshes when the
+     browser throttles timers to once a minute. */
   NovaPulseMap.prototype._start = function () {
     var self = this;
     if (this._timer) { clearInterval(this._timer); this._timer = null; }
+    if (this._destroyed || !this.options.autoRefresh) return;
+
+    /* Hidden tabs get a long interval instead of none: the map should
+       still be roughly correct when the tab is backgrounded, and some
+       users run a status page in a pinned tab all day. */
+    if (typeof document !== 'undefined' && document.hidden) {
+      this._timer = setInterval(function () { self._refresh(); },
+        Math.max(this.options.refreshMs, 60000));
+      return;
+    }
+
     this._timer = setInterval(function () { self._refresh(); },
       this._live ? this.options.refreshMs : this.options.refreshMs * 3);
   };
@@ -1027,6 +1819,7 @@
     if (this._destroyed) return;
     this._destroyed = true;
     if (this._timer) { clearInterval(this._timer); this._timer = null; }
+    this.stopPolling();
     if (this._ro) { this._ro.disconnect(); this._ro = null; }
     this._offs.forEach(function (off) { try { off(); } catch (e) {} });
     this._offs = [];

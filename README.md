@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 # NovaPulse Edge Map
 
@@ -272,6 +272,25 @@ Leaflet is a **peer dependency** — we never bundle it, per its licence.
 | `colors` | `object` | see below | Status colour overrides |
 | `onNodeClick` | `function` | `null` | Node click handler |
 
+### Advanced options (v1.1.0)
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `showControls` | `boolean` | `false` | Search, filter, theme, export bar |
+| `showSparklines` | `boolean` | `false` | Per-node SVG sparkline + p95 column |
+| `showTrend` | `boolean` | `false` | Latency direction vs prior samples |
+| `showUptime` | `boolean` | `false` | Uptime column (needs `uptime` in the data) |
+| `showSearch` | `boolean` | `false` | Search input in the controls bar |
+| `sortableTable` | `boolean` | `true` | Click/keyboard sort on table headers |
+| `historyLength` | `number` | `24` | Samples retained per node (1“720) |
+| `autoRefresh` | `boolean` | `true` | Start the refresh interval |
+| `refreshBackoff` | `boolean` | `true` | Exponential backoff on feed failure |
+| `pauseWhenHidden` | `boolean` | `true` | Slow the interval in a hidden tab |
+| `deepLink` | `boolean` | `false` | `#node-id` in the URL focuses a marker |
+| `persistKey` | `string` | `null` | `localStorage` key for state |
+| `onStatusChange` | `function` | `null` | Fires once per real transition |
+| `onFeedError` | `function` | `null` | Feed fetch/reject handler |
+
 ### Methods
 
 | Method | Returns | Description |
@@ -292,6 +311,24 @@ Leaflet is a **peer dependency** — we never bundle it, per its licence.
 | `on(event, fn)` | `function` | Subscribe; returns an unsubscribe fn |
 | `off(event, fn)` | `void` | Unsubscribe |
 
+### Advanced methods
+
+| Method | Returns | Description |
+|---|---|---|
+| `poll(url?)` | `Promise` | One fetch of the feed |
+| `startPolling(url?)` | `this` | Poll now, then on the current interval |
+| `stopPolling()` | `this` | Clear the pending poll |
+| `setSearch(q)` | `this` | Filter the table by name/region/country/id |
+| `setFilter(status)` | `this` | `all` \| `Operational` \| `Degraded` \| `Down` |
+| `setSort(key, dir)` | `this` | `name` \| `latency` \| `p95` \| `status` \| `region` \| `uptime` |
+| `setTheme(theme)` | `this` | Swap tiles and CSS variables |
+| `focusNode(id)` | `this` | Fly to a node |
+| `getHistory(id)` | `(number\|null)[]` | Samples, oldest first; `null` = gap |
+| `getPercentiles(id)` | `object \| null` | `{ samples, min, p50, p95, p99, max, mean }` |
+| `clearHistory()` | `this` | Wipe samples and status memory |
+| `exportJSON()` | `object` | `{ generatedAt, state, history }`, downloads too |
+| `restore()` | `object \| null` | Re-read `persistKey` |
+
 Every method is safe to call after `destroy()` — it becomes a no-op rather than throwing.
 
 ### Events
@@ -306,7 +343,13 @@ off();  // unsubscribe
 | `ready` | `MapState` | Construction finished |
 | `nodeclick` | `EdgeNode` | A marker is clicked |
 | `livechange` | `boolean` | Live state changes |
-| `error` | `{ code, url? }` | Tile or fetch failure |
+| `statuschange` | `{ id, name, from, to, at }` | A node changed status |
+| `recovered` | same shape | A node returned to `Operational` |
+| `feed` | `{ nodes, at }` | A poll succeeded |
+| `feedstopped` | `{ attempts }` | Polling gave up after 8 failures |
+| `themechange` | `'dark' \| 'light'` | Theme switched |
+| `focus` | `EdgeNode` | A deep link focused a node |
+| `error` | `{ code \| error, attempts?, url? }` | Tile or fetch failure |
 | `destroy` | `null` | Teardown complete |
 | `*` | `{ type, detail }` | Any event (catch-all) |
 
@@ -336,12 +379,22 @@ interface EdgeNode {
   id?: string;                          // defaults to array index
   name?: string;
   region?: string;                      // small caption in the tooltip
+  country?: string;                     // shown under the name; widens search
+  provider?: string;                    // widens search
   lat: number;                          // required, −90…90
   lon: number;                          // required, −180…180
   status?: 'Operational' | 'Degraded' | 'Down';
-  latency?: number;                     // ms
+  latency?: number;                     // ms — ABSENT means unknown, not 0
   ms?: number;                          // alias for latency
+  uptime?: number;                      // 0-100, needs showUptime
+  note?: string;                        // free text in the tooltip
 }
+```
+
+> **A missing `latency` is unknown, not `0`.** It renders as `—`, records a gap
+> in the sparkline, and is excluded from the average and p95. Defaulting it to
+> zero is how a latency dashboard ends up reporting a broken probe as the
+> fastest one on the map.
 ```
 
 Malformed input is dropped rather than throwing — a bad row can't take the map down:
@@ -386,7 +439,7 @@ Return either a bare array or a wrapped object:
 
 CartoDB's Dark Matter tiles **now require an API key**. Unauthenticated requests
 return a fixed 2,394-byte placeholder reading `API KEY REQUIRED` at every zoom
-level — measured across z2–z8 on `a.basemaps.cartocdn.com`, `basemaps.cartocdn.com`
+level — measured across z2-z8 on `a.basemaps.cartocdn.com`, `basemaps.cartocdn.com`
 and `dark_nolabels`, all byte-identical.
 
 `osmDark` is therefore the default: it is a real, keyless raster, and the shell
@@ -443,7 +496,7 @@ Verified with Lighthouse **100** on the accessibility audit.
 - Tooltips are readable by assistive tech; the table mirrors all data as a real `<table>`
 - Live toggle uses `role="switch"` with a live `aria-checked`
 - Attribution and controls meet WCAG AA contrast (≥4.5:1)
-- Interactive targets are ≥24×24px
+- Interactive targets are ≥24x24px
 - `prefers-reduced-motion` disables the entrance animation and all pulses
 - `prefers-contrast: more` thickens tooltip borders
 
@@ -453,10 +506,19 @@ Verified with Lighthouse **100** on the accessibility audit.
 
 | | |
 |---|---|
-| Bundle | 33 KB raw, ~11 KB gzipped |
+| Bundle | 57 KB raw, ~18 KB gzipped (v1.0.0 was ~11 KB) |
 | Dependencies | Leaflet only (peer) |
 | Clustering | Built in, ~35 lines — no markercluster plugin |
 | DOM nodes | One marker per visible node; clusters merge the rest |
+| History | Bounded per-node ring buffer, cleared on node churn |
+
+The size increase from v1.0.0 is the advanced feature set — sparklines,
+percentiles, search/filter/sort, theming and the polling loop. Everything is
+opt-in, so if you don't need it you're paying only for the ~18 KB.
+
+Auto-injected CSS adds roughly 10 KB (4 KB gzipped) and is skipped if you
+import `novapulse-edge-map/style.css` yourself, which lets your bundler cache
+it.
 
 Clustering matters more than it sounds. At world zoom, Ashburn and New York sit
 **11 px** apart and London and Amsterdam **15 px** — overlapping into a single
@@ -493,10 +555,44 @@ Set `live: false`.
 
 ---
 
+## Advanced features
+
+v1.1.0 adds live polling, sparklines, p95 latency, trend indicators, search,
+filters, sortable columns, theme switching, incident detection and JSON export.
+All **opt-in** — defaults preserve the v1.0.0 behaviour exactly.
+
+```js
+new NovaPulseMap({
+  container: '#map',
+  nodesUrl: '/api/probes.json',
+  live: false,              // your data is real — don't fake it
+  showControls: true,       // search + filters + theme + export
+  showSparklines: true,     // per-node SVG sparkline + p95 column
+  showTrend: true,          // ↑/↓ vs the previous samples
+  showUptime: true,
+  sortableTable: true,
+  deepLink: true,
+  persistKey: 'my-status'
+});
+```
+
+See **[docs/ADVANCED.md](docs/ADVANCED.md)** for the full reference and
+[examples/05-advanced.html](examples/05-advanced.html) for a live demo.
+
+---
+
+## Deploying
+
+100% free — GitHub Pages, unpkg, Vercel, Netlify, or plain nginx. See
+**[docs/DEPLOY.md](docs/DEPLOY.md)**, including CSP headers, live-feed hosting
+on Cloudflare Workers, and a pre-launch checklist.
+
+---
+
 ## Contributing
 
 ```bash
-git clone https://github.com/your-org/novapulse-edge-map.git
+git clone https://github.com/SudhirDevOps1/NovaPulse-Map.git
 cd novapulse-edge-map
 
 npm test          # 40 assertions, no browser needed
@@ -513,9 +609,9 @@ it that way; a status-page widget should never drag a toolchain along.
 
 ## License
 
-MIT © NovaPulse Labs
+MIT Â© SudhirDevOps1
 
-Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors,
+Map data Â© [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors,
 available under the [ODbL](https://opendatacommons.org/licenses/odbl/). Tiles are
 served by third parties under their own terms.
 

@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Embeddable NovaPulse edge-probe status widget: a keyless Leaflet world map with pulsing status markers and latency tooltips, driven over postMessage." />
+<meta name="theme-color" content="#0B0F14" />
 <title>NovaPulse — Edge Status Widget</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="../dist/novapulse.css" />
@@ -24,6 +26,7 @@
 </style>
 </head>
 <body>
+<main>
 
 <div class="bar">
   <div class="id">
@@ -54,6 +57,8 @@
        {"id":"nrt","name":"Tokyo","region":"apac","lat":35.6762,"lon":139.6503,"status":"Operational","latency":204},
        {"id":"syd","name":"Sydney","region":"apac","lat":-33.8688,"lon":151.2093,"status":"Operational","latency":238}
      ]'></div>
+
+</main>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="../dist/novapulse.js"></script>

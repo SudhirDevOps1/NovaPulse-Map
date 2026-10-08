@@ -1,4 +1,4 @@
-/*! NovaPulse Edge Map v1.0.0 | MIT | https://github.com/your-org/novapulse-edge-map */
+/*! NovaPulse Edge Map v1.1.0 | MIT | https://github.com/your-org/novapulse-edge-map */
 .nps {
 position: relative;
 background: var(--nps-ink, #0B0F14);
@@ -116,7 +116,7 @@ padding: 5px 8px !important;
 border-radius: 6px 0 0 0;
 }
 .nps .leaflet-control-attribution a {
-color: #C7D4E2 !important;
+color: var(--nps-fg, #E2E8F0) !important;
 display: inline-block;
 padding: 4px 2px;
 min-height: 24px;
@@ -267,6 +267,66 @@ transition: transform .22s cubic-bezier(.22, 1, .36, 1);
 position: absolute; width: 1px; height: 1px;
 overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
 }
+.nps-controls {
+display: flex; flex-wrap: wrap; align-items: center;
+gap: 8px; margin: 12px 12px 10px;
+}
+.nps-search {
+flex: 1 1 180px; min-width: 0;
+background: var(--nps-soft, #111823);
+border: 1px solid var(--nps-line, #243244);
+border-radius: 9px; padding: 8px 11px;
+font: inherit; font-size: .85rem; color: var(--nps-fg, #E2E8F0);
+}
+.nps-search::placeholder { color: var(--nps-faint, #9FB0C6); opacity: 1; }
+.nps-search:focus-visible { outline: 2px solid #38BDF8; outline-offset: 1px; }
+.nps-filters { display: flex; gap: 4px; flex-wrap: wrap; }
+.nps-filter {
+background: var(--nps-soft, #111823);
+border: 1px solid var(--nps-line, #243244);
+border-radius: 999px; padding: 7px 12px;
+font: inherit; font-size: .78rem; font-weight: 600;
+color: var(--nps-faint, #9FB0C6); cursor: pointer;
+min-height: 32px;
+transition: background .16s ease, color .16s ease, border-color .16s ease;
+}
+.nps-filter:hover { color: var(--nps-fg, #E2E8F0); border-color: #33455C; }
+.nps-filter.is-active { background: #E2E8F0; color: #0B0F14; border-color: transparent; }
+.nps-filter:focus-visible { outline: 2px solid #38BDF8; outline-offset: 2px; }
+.nps-actions { display: flex; gap: 4px; margin-left: auto; }
+.nps-action {
+width: 32px; height: 32px;
+display: grid; place-items: center;
+background: var(--nps-soft, #111823);
+border: 1px solid var(--nps-line, #243244);
+border-radius: 9px;
+color: var(--nps-fg, #E2E8F0);
+font-size: .9rem; line-height: 1; cursor: pointer;
+transition: background .16s ease, border-color .16s ease;
+}
+.nps-action:hover { background: #1B2634; border-color: #33455C; }
+.nps-action:focus-visible { outline: 2px solid #38BDF8; outline-offset: 2px; }
+.nps-feed { margin: 8px 12px 0; font-size: .75rem; color: var(--nps-fg, #E2E8F0); }
+.nps-feed.is-error { color: var(--nps-fg, #E2E8F0); font-weight: 600; }
+.nps-trend { font-size: .7rem; font-weight: 700; margin-left: 6px; }
+.nps-trend.up { color: #F59E0B; }
+.nps-trend.down { color: #22C55E; }
+.nps-trend.flat { color: #9FB0C6; }
+.nps-spark { margin-top: 10px; }
+.nps-spark svg { display: block; width: 100%; height: 28px; overflow: visible; }
+.nps-spark-range { display: block; font-size: .65rem; color: var(--nps-faint, #9FB0C6); margin-top: 3px; }
+.nps-tip-note {
+margin-top: 8px; font-size: .72rem; color: #CBD5E1;
+max-width: 220px; white-space: normal;
+}
+.nps-sub { display: block; font-size: .68rem; font-weight: 400; color: var(--nps-faint, #9FB0C6); margin-top: 1px; }
+.nps-empty { text-align: center; color: var(--nps-faint, #9FB0C6); padding: 20px 16px !important; font-weight: 400 !important; }
+.nps-sortable { cursor: pointer; user-select: none; }
+.nps-sortable:hover { color: var(--nps-fg, #E2E8F0); }
+.nps-sortable:focus-visible { outline: 2px solid #38BDF8; outline-offset: -2px; }
+.nps-sortable[aria-sort="ascending"]::after { content: " \2191"; font-size: .9em; }
+.nps-sortable[aria-sort="descending"]::after { content: " \2193"; font-size: .9em; }
+.nps[data-theme="light"] .nps-filter.is-active { background: #0F172A; color: #F1F5F9; }
 @media (prefers-reduced-motion: reduce) {
 .nps-anim .leaflet-container { animation: none; }
 .nps-pulse { animation: none !important; opacity: .25; transform: scale(1.4); }

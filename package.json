@@ -1,14 +1,18 @@
 {
   "name": "novapulse-edge-map",
-  "version": "1.0.0",
-  "description": "Embeddable, keyless, production-grade world map of edge-probe vantage points. Leaflet + OpenStreetMap, pulsing status markers, latency tooltips, zoom-aware clustering, dark theme. No API key, no tracking, no build step required.",
+  "version": "1.1.0",
+  "description": "Embeddable, keyless, production-grade world map of edge-probe vantage points. Leaflet + OpenStreetMap, pulsing status markers, latency sparklines, p95, live polling with backoff, incident detection, zoom-aware clustering. No API key, no tracking, no build step required.",
   "keywords": [
     "leaflet",
     "openstreetmap",
     "status-page",
     "uptime",
     "latency-monitoring",
+    "sparkline",
+    "p95",
     "edge-nodes",
+    "incident-detection",
+    "statuspage",
     "dataviz",
     "dark-mode",
     "embed",
@@ -16,14 +20,14 @@
     "no-api-key"
   ],
   "license": "MIT",
-  "author": "NovaPulse Labs",
-  "homepage": "https://github.com/your-org/novapulse-edge-map#readme",
+  "author": "SudhirDevOps1",
+  "homepage": "https://github.com/SudhirDevOps1/NovaPulse-Map#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-org/novapulse-edge-map.git"
+    "url": "git+https://github.com/SudhirDevOps1/NovaPulse-Map.git"
   },
   "bugs": {
-    "url": "https://github.com/your-org/novapulse-edge-map/issues"
+    "url": "https://github.com/SudhirDevOps1/NovaPulse-Map/issues"
   },
   "main": "./dist/novapulse.js",
   "module": "./src/novapulse.js",
@@ -57,7 +61,8 @@
     "serve": "node scripts/serve.mjs",
     "lint": "node --check src/novapulse.js && node --check dist/novapulse.js",
     "test": "node test/run.mjs",
-    "prepublishOnly": "npm run build && npm run test"
+    "prepublishOnly": "npm run build && npm run test",
+    "verify": "npm run build && npm run build:check && npm test"
   },
   "peerDependencies": {
     "leaflet": "^1.9.4"

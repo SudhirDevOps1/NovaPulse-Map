@@ -27,6 +27,11 @@ const MIME = {
   '.map': 'application/json'
 };
 
+/* Toggleable behaviours, driven by the advanced example via /api/flags.
+   Doing it server-side keeps the example honest: the page receives the
+   same JSON any real feed would return. */
+const flags = { outage: false, jitter: false, broken: false };
+
 /* Simulated vantage points with a drifting baseline so the feed looks live. */
 const NODES = [
   { id:'iad', name:'Ashburn',      region:'us-east',    lat: 39.0438, lon: -77.4874, base: 12 },
@@ -49,16 +54,41 @@ function payload() {
   return {
     generatedAt: new Date().toISOString(),
     nodes: NODES.map((n) => {
-      const down = n.id === 'gru';
-      const degraded = n.id === 'bom';
-      const jitter = Math.round(n.base * (Math.random() * 0.24 - 0.12));
+      let down = n.id === 'gru';
+      let degraded = n.id === 'bom';
+
+      /* Forced outage knocks out a third of the fleet, which is what a
+         real regional failure looks like on a status page. */
+      if (flags.outage && i3(n.id)) { down = true; degraded = false; }
+      if (flags.outage && i3b(n.id)) { degraded = true; down = false; }
+
+      /* Spread widens under "extra jitter" so the sparklines visibly react. */
+      const spread = flags.jitter ? 0.48 : 0.24;
+      const jitter = Math.round(n.base * (Math.random() * spread - spread / 2));
+
       return {
         id: n.id, name: n.name, region: n.region, lat: n.lat, lon: n.lon,
         status: down ? 'Down' : degraded ? 'Degraded' : 'Operational',
-        latency: down ? 0 : Math.max(1, n.base + jitter)
+        latency: down ? 0 : Math.max(1, n.base + jitter),
+        /* Optional fields the library carries straight through. */
+        uptime: down ? 97.4 + Math.random() : 99.9 + Math.random() * 0.09,
+        note: down ? 'Probe timeout — no response in 30s' : ''
       };
     })
   };
+}
+
+/* Deterministic subset by id, so repeated polls flip a stable set of
+   nodes rather than a random one each time. */
+function i3(id) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return h % 3 === 0;
+}
+function i3b(id) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return h % 5 === 0;
 }
 
 const server = createServer(async (req, res) => {
@@ -66,12 +96,42 @@ const server = createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
 
     if (url.pathname === '/api/probes.json') {
+      /* Lets the advanced example demonstrate backoff: a 503 is a real
+         failure, which is what makes the retry logic meaningful. */
+      if (flags.broken) {
+        res.writeHead(503, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store'
+        });
+        res.end(JSON.stringify({ error: 'probe collector unavailable' }));
+        return;
+      }
       res.writeHead(200, {
         'Content-Type': 'application/json; charset=utf-8',
         'Cache-Control': 'no-store',
         'Access-Control-Allow-Origin': '*'
       });
       res.end(JSON.stringify(payload()));
+      return;
+    }
+
+    if (url.pathname === '/api/flags') {
+      for (const key of ['outage', 'jitter', 'broken']) {
+        const v = url.searchParams.get(key);
+        if (v === '1' || v === '0') flags[key] = v === '1';
+      }
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'no-store'
+      });
+      res.end(JSON.stringify(flags));
+      return;
+    }
+
+    if (url.pathname === '/api/reset') {
+      flags.outage = flags.jitter = flags.broken = false;
+      res.writeHead(204, { 'Access-Control-Allow-Origin': '*' }).end();
       return;
     }
 
@@ -109,5 +169,8 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log(`  http://127.0.0.1:${PORT}/examples/02-js-api.html`);
   console.log(`  http://127.0.0.1:${PORT}/examples/03-iframe-host.html`);
   console.log(`  http://127.0.0.1:${PORT}/examples/04-live-feed.html`);
-  console.log(`\n  simulated feed: /api/probes.json\n`);
+  console.log(`  http://127.0.0.1:${PORT}/examples/05-advanced.html`);
+  console.log(`\n  simulated feed: /api/probes.json`);
+  console.log(`  toggle flags  : /api/flags?outage=1&jitter=1&broken=1`);
+  console.log(`  reset flags   : /api/reset\n`);
 });

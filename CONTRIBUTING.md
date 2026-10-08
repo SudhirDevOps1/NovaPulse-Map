@@ -1,4 +1,4 @@
-# Contributing
+﻿# Contributing
 
 Thanks for taking the time. This is a small, dependency-free library, so the
 bar for changes is mostly *don't make it worse*.
@@ -22,7 +22,7 @@ don't hide it, don't style it out.
 ## Getting set up
 
 ```bash
-git clone https://github.com/your-org/novapulse-edge-map.git
+git clone https://github.com/SudhirDevOps1/NovaPulse-Map.git
 cd novapulse-edge-map
 npm test          # 40 assertions, runs in about a second
 npm run build     # regenerate dist/
