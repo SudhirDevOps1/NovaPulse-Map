@@ -38,6 +38,40 @@ First stable release.
 - **Zero-dependency dev server** (`scripts/serve.mjs`) with a simulated
   `/api/probes.json` endpoint, and path containment against directory traversal.
 
+### Fixed
+
+Bugs found and fixed during the pre-release audit. Each has a regression test.
+
+- **Instance leak on re-mount.** Constructing a second `NovaPulseMap` on the same
+  container left the first one running: its interval, `ResizeObserver` and Leaflet
+  map all stayed live and invisible, leaking on every re-initialisation. The
+  constructor now disposes any prior instance on that container and records itself
+  as `container.__npsInstance`. Verified in-browser: `firstDestroyed: true`,
+  `firstTimer: null`, one `.leaflet-container` instead of two.
+- **Stale `destroy()` could unclaim a live mount.** The back-reference is now only
+  cleared when it still points at the instance being destroyed.
+- **`destroy()` leaked inline CSS variables.** `--nps-height` and `--nps-ink` were
+  left on the host element, so a re-mount inherited stale values. Both are removed.
+- **Post-destroy calls threw inside Leaflet.** `zoomIn`, `zoomOut`, `fit`,
+  `setView`, `getZoom`, `invalidateSize`, `setNodes`, `_renderMarkers`, `_refresh`
+  and `getState` now no-op or return safe defaults once destroyed, instead of
+  reaching into a detached map container.
+- **`getZoom()` returned a stale value after destroy.** Now returns `null`.
+- **`getState()` after destroy returned live-looking data.** Now returns an empty,
+  explicitly-inert state.
+- **`invalidateSize()` measured the wrong element.** It read the host, which is a
+  stack taller than the map (toggle + panel). It now measures the map surface, so
+  the bounds fit matches the actual viewport.
+- **`fitBounds` could throw on a degenerate bounds box.** A single node, or a set of
+  nodes with zero span, produced an inverted `LatLngBounds`. The span is now checked
+  before fitting.
+- **Attribution links failed WCAG 2.5.8.** They rendered at text height (~21px),
+  below the 24×24 target-size floor. Now `inline-block` with padding and a
+  `min-height`, measured at 24px.
+- **Caller-supplied node objects were mutated in place.** Live probing wrote the
+  jittered latency back into the caller's own object. Nodes are now always copied
+  during normalisation.
+
 ### Notes on decisions
 
 - **`osmDark` is the default tile preset, not CartoDB Dark Matter.** CartoDB now

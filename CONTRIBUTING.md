@@ -24,7 +24,7 @@ don't hide it, don't style it out.
 ```bash
 git clone https://github.com/your-org/novapulse-edge-map.git
 cd novapulse-edge-map
-npm test          # 33 assertions, runs in about a second
+npm test          # 40 assertions, runs in about a second
 npm run build     # regenerate dist/
 npm run serve     # http://127.0.0.1:5173
 ```
@@ -77,6 +77,29 @@ Each of these caused a real bug. Please check them if you touch the relevant cod
   panel too.
 - **`innerHTML` with user data is XSS.** Node names come from an API. Use
   `escapeHtml()` or build nodes with `createElement`.
+- **Never construct twice on one container.** The constructor now disposes a prior
+  instance, but the guard only works because every path funnels through it. Keep it
+  that way.
+
+## Known limitations
+
+Honest list of what this library does not do, so nobody discovers it in production.
+
+- **Tile providers have fair-use limits.** The default German OSM mirror is fine for
+  a status page and the four examples, but it is a community server. For production
+  traffic, self-host tiles or use a commercial provider.
+- **Clustering is a single-pass greedy grouping.** Fine for the dozens-to-low-hundreds
+  of nodes a status page shows. It is not a hierarchical clustering algorithm and
+  won't match the visual grouping of `leaflet.markercluster` on very dense datasets.
+- **Nodes spanning the antimeridian do not cluster with each other.** `-179` and `+179`
+  stay separate. This is the geographically honest behaviour, but it means a Pacific
+  cluster will show as two markers.
+- **No touch gesture support beyond Leaflet's own.** Pinch-zoom and two-finger pan
+  work; there is no custom gesture handling.
+- **`setNodes` rebuilds all markers.** Cheap at status-page scale (tens of nodes);
+  it would need diffing for thousands.
+- **No source-map output.** `scripts/build.mjs` does not emit `.map` files, so the
+  minified bundle has no stack-trace mapping back to source.
 
 ## Reporting bugs
 

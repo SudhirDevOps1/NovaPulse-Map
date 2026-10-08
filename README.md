@@ -499,7 +499,7 @@ Set `live: false`.
 git clone https://github.com/your-org/novapulse-edge-map.git
 cd novapulse-edge-map
 
-npm test          # 33 assertions, no browser needed
+npm test          # 40 assertions, no browser needed
 npm run build     # regenerate dist/
 npm run serve     # dev server + simulated /api/probes.json
 ```
