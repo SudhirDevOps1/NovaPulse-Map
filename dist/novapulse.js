@@ -1,4 +1,4 @@
-/*! NovaPulse Edge Map v1.1.0 | MIT | https://github.com/your-org/novapulse-edge-map */
+/*! NovaPulse Edge Map v1.1.0 | MIT | https://github.com/SudhirDevOps1/NovaPulse-Map */
 /*!
  * NovaPulse Edge Map — v1.0.0
  * Embedded, keyless world map of edge-probe vantage points.
@@ -27,7 +27,7 @@
      Constants
      ══════════════════════════════════════════════════════════════════ */
 
-  var VERSION = '1.0.0';
+  var VERSION = '1.1.0';
 
   /* Status → colour. Overridable per-instance via options.colors. */
   var STATUS_COLOR = {

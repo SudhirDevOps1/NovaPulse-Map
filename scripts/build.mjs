@@ -53,13 +53,27 @@ const js = readFileSync(join(src, 'novapulse.js'), 'utf8');
 const dts = readFileSync(join(src, 'novapulse.d.ts'), 'utf8');
 const css = readFileSync(join(src, 'novapulse.css'), 'utf8');
 
-const banner = `/*! NovaPulse Edge Map v${JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version} | MIT | https://github.com/your-org/novapulse-edge-map */\n`;
+const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+const banner = `/*! NovaPulse Edge Map v${pkg.version} | MIT | https://github.com/SudhirDevOps1/NovaPulse-Map */\n`;
 
-const minJs = minify(js);
+/* Inject the package version into the library so NovaPulseMap.VERSION can never
+   drift from package.json. Bumping package.json alone once left the runtime
+   reporting 1.0.0 while the banner said 1.1.0, so a page looked like it was
+   running a version it wasn't. Fail loudly if the declaration moves rather than
+   silently shipping a stale constant. */
+const VERSION_RE = /(var VERSION\s*=\s*)'[^']*'/;
+if (!VERSION_RE.test(js)) {
+  console.error("\n  ERROR: no `var VERSION = '...'` found in src/novapulse.js");
+  console.error('  The build injects the version there. Restore it or update build.mjs.\n');
+  process.exit(1);
+}
+const jsVersioned = js.replace(VERSION_RE, `$1'${pkg.version}'`);
+
+const minJs = minify(jsVersioned);
 const minCss = minify(css);
 
 const targets = {
-  'novapulse.js': banner + js,
+  'novapulse.js': banner + jsVersioned,
   'novapulse.min.js': banner + minJs,
   'novapulse.css': css,
   'novapulse.min.css': banner + minCss,

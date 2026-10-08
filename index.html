@@ -8,7 +8,7 @@
 <title>NovaPulse Edge Map — free, keyless edge-probe status map</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<link rel="stylesheet" href="./dist/novapulse.css" />
+<link rel="stylesheet" href="./dist/novapulse.css?v=1.1.0" />
 
 <style>
   :root{
@@ -195,11 +195,13 @@
     <h2 class="h2">Quick start</h2>
     <p class="sub">
       One attribute and two script tags. Auto-init scans the DOM on
-      <code>DOMContentLoaded</code>.
+      <code>DOMContentLoaded</code>. Keep the <code>?v=</code> query string:
+      without it a CDN will happily hand a returning visitor an older bundle,
+      and the page then reports a version that does not match its own features.
     </p>
 <pre><code>&lt;link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /&gt;
 &lt;script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"&gt;&lt;/script&gt;
-&lt;script src="./dist/novapulse.min.js"&gt;&lt;/script&gt;
+&lt;script src="./dist/novapulse.min.js?v=1.1.0"&gt;&lt;/script&gt;
 
 &lt;div data-novapulse-map
      data-nodes-url="/data/probes.json"
@@ -353,7 +355,7 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="./dist/novapulse.min.js"></script>
+<script src="./dist/novapulse.min.js?v=1.1.0"></script>
 <script>
 /* The hero demo runs a scripted feed rather than fetching, so the page works
    from a plain file:// or a cold CDN cache without a server. */

@@ -25,8 +25,10 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Verify dist is up to date with src
-        run: npm run build && npm run build:check
+      # --check does not write. It fails the job if dist/ or the HTML asset
+      # URLs have drifted from src/ or from package.json's version.
+      - name: Verify dist and asset versions are current
+        run: npm run build:check
 
       - name: Serve examples
         run: node scripts/serve.mjs 5173 &
@@ -40,6 +42,20 @@ jobs:
             sleep 1
           done
           echo "server did not start"; exit 1
+
+      # A page loading an old bundle is indistinguishable from a library bug,
+      # so assert the served file carries the current version.
+      - name: Served bundle matches package version
+        run: |
+          set -euo pipefail
+          want=$(node -p "require('./package.json').version")
+          got=$(curl -sf "http://127.0.0.1:5173/dist/novapulse.min.js?v=$want" | head -1)
+          echo "want: $want"
+          echo "got : $got"
+          case "$got" in
+            *"$want"*) echo "version ok" ;;
+            *) echo "VERSION MISMATCH"; exit 1 ;;
+          esac
 
       - name: Feed endpoint responds
         run: |

@@ -57,13 +57,14 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "node scripts/build.mjs",
-    "build:check": "node scripts/build.mjs --check",
+    "build": "node scripts/build.mjs && node scripts/stamp-version.mjs",
+    "build:check": "node scripts/build.mjs --check && node scripts/stamp-version.mjs --check",
     "serve": "node scripts/serve.mjs",
     "lint": "node --check src/novapulse.js && node --check dist/novapulse.js",
     "test": "node test/run.mjs",
     "prepublishOnly": "npm run build && npm run test",
-    "verify": "npm run build && npm run build:check && npm test"
+    "verify": "npm run build && npm run build:check && npm test",
+    "stamp": "node scripts/stamp-version.mjs"
   },
   "peerDependencies": {
     "leaflet": "^1.9.4"

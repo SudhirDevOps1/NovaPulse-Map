@@ -7,7 +7,7 @@
  *
  *   node test/run.mjs
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
@@ -275,6 +275,47 @@ check('exports VERSION and TILES presets', () => {
   assert(NovaPulseMap.TILES.osmDark, 'osmDark preset');
   assert(NovaPulseMap.TILES.cartoDark.needsKey === true, 'carto flagged needsKey');
   assert(NovaPulseMap.TILES.none.url === null, 'none preset has no url');
+});
+
+check('VERSION matches package.json in the built bundle', () => {
+  /* The source constant is injected at build time. If someone bumps
+     package.json without rebuilding, the runtime reports a version the code
+     does not match — which is exactly what happened at 1.1.0. */
+  const pkg = JSON.parse(readFileSync(join(here, '..', 'package.json'), 'utf8'));
+  const distJs = readFileSync(join(here, '..', 'dist', 'novapulse.js'), 'utf8');
+  const distMin = readFileSync(join(here, '..', 'dist', 'novapulse.min.js'), 'utf8');
+
+  const m = distJs.match(/var VERSION\s*=\s*'([^']+)'/);
+  assert(m, 'no VERSION declaration in dist/novapulse.js');
+  eq(m[1], pkg.version, 'dist VERSION does not match package.json — run npm run build');
+
+  assert(distMin.includes('v' + pkg.version), 'minified banner version mismatch');
+});
+
+check('every HTML file pins the current version on local assets', () => {
+  const pkg = JSON.parse(readFileSync(join(here, '..', 'package.json'), 'utf8'));
+  const pages = ['index.html', '404.html',
+    'examples/01-auto-init.html', 'examples/02-js-api.html',
+    'examples/03-iframe-host.html', 'examples/04-live-feed.html',
+    'examples/05-advanced.html', 'examples/embed-widget.html'];
+
+  let checked = 0;
+  for (const rel of pages) {
+    const p = join(here, '..', rel);
+    if (!existsSync(p)) continue;
+    const html = readFileSync(p, 'utf8');
+    /* Only RELATIVE refs to our own dist/. Remote URLs are already pinned by
+       version (@1.9.4) and we cannot invalidate their cache entry. */
+    const refs = [...html.matchAll(/(?:href|src)="((?:\.\.\/|\.\/)?dist\/[^"?]+)[^"]*"/g)]
+      .map(m => m[1]);
+    for (const ref of refs) {
+      const tag = html.slice(0, html.indexOf(ref)) + ref;
+      assert(/\?v=/.test(html.slice(html.indexOf(ref), html.indexOf(ref) + ref.length + 12)),
+        `${rel}: "${ref}" is missing ?v=${pkg.version} — a CDN may serve a stale bundle`);
+      checked++;
+    }
+  }
+  assert(checked > 0, 'no local asset references found to check');
 });
 
 check('module is callable with and without new', () => {
