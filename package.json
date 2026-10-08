@@ -49,6 +49,7 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "index.html",
     "dist",
     "src",
     "README.md",

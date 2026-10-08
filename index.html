@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="NovaPulse Edge Map - a free, keyless, embeddable world map of edge-probe vantage points. Leaflet + OpenStreetMap, pulsing status markers, latency sparklines, p95, live polling with backoff, incident detection." />
+<meta name="theme-color" content="#0B0F14" />
+<title>NovaPulse Edge Map — free, keyless edge-probe status map</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="./dist/novapulse.css" />
+
+<style>
+  :root{
+    --ink:#0B0F14; --soft:#111823; --line:#243244;
+    --fg:#E2E8F0; --dim:#94A3B8; --faint:#9FB0C6;
+    --ok:#22C55E; --warn:#F59E0B; --bad:#EF4444;
+    --radius:16px;
+  }
+  *,*::before,*::after{ box-sizing:border-box }
+  body{
+    margin:0; background:var(--ink); color:var(--fg);
+    font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  a{ color:var(--faint) }
+  a:hover{ color:#fff }
+  .wrap{ max-width:1100px; margin:0 auto; padding:0 24px }
+
+  /* ── header ── */
+  header{ padding:64px 0 40px }
+  .brand{ display:flex; align-items:center; gap:11px; margin-bottom:34px }
+  .mark{
+    width:36px; height:36px; display:grid; place-items:center;
+    border-radius:10px; background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.12); font-weight:700; font-size:.9rem;
+  }
+  .brand span:last-child{ font-weight:700; letter-spacing:-.01em }
+  .pill{
+    display:inline-flex; align-items:center; gap:7px;
+    border-radius:999px; border:1px solid var(--line); background:var(--soft);
+    padding:6px 14px; font-size:12px; font-weight:600; color:var(--faint);
+    margin-bottom:20px;
+  }
+  .pill i{ width:7px; height:7px; border-radius:50%; background:var(--ok) }
+  h1{
+    margin:0 0 18px; font-size:clamp(34px,6vw,56px); line-height:1.06;
+    letter-spacing:-.035em; font-weight:800;
+  }
+  h1 em{ font-style:normal; color:var(--faint) }
+  .lede{ margin:0; max-width:64ch; color:var(--dim); font-size:17px }
+
+  .cta{ display:flex; flex-wrap:wrap; gap:10px; margin-top:28px }
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:12px 20px; border-radius:11px; text-decoration:none;
+    font-size:.9rem; font-weight:600; border:1px solid var(--line);
+    background:var(--soft); color:var(--fg); min-height:44px;
+    transition:background .18s ease,border-color .18s ease,transform .18s ease;
+  }
+  .btn:hover{ background:#1B2634; border-color:#33455C; color:#fff; transform:translateY(-1px) }
+  .btn:focus-visible{ outline:2px solid #38BDF8; outline-offset:2px }
+  .btn-primary{ background:var(--fg); color:#0B0F14; border-color:transparent }
+  .btn-primary:hover{ background:#fff; color:#0B0F14 }
+
+  .badges{ display:flex; flex-wrap:wrap; gap:8px; margin-top:26px }
+  .badge{
+    font-size:11.5px; font-weight:600; color:var(--faint);
+    border:1px solid var(--line); background:var(--soft);
+    padding:5px 11px; border-radius:999px;
+  }
+  .badge b{ color:var(--ok); font-weight:700 }
+
+  /* ── live demo ── */
+  .demo{ margin:8px 0 12px }
+  .demo-head{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:14px; flex-wrap:wrap; margin-bottom:12px;
+  }
+  .demo-head h2{ margin:0; font-size:.78rem; text-transform:uppercase; letter-spacing:.09em; color:var(--faint) }
+  .demo-head .note{ font-size:.82rem; color:var(--dim); margin:0 }
+
+  /* ── sections ── */
+  section{ padding:44px 0; border-top:1px solid rgba(255,255,255,.07) }
+  .h2{ margin:0 0 8px; font-size:clamp(22px,3.4vw,30px); letter-spacing:-.025em; font-weight:700 }
+  .sub{ margin:0 0 26px; color:var(--dim); max-width:66ch; font-size:.95rem }
+
+  .grid{ display:grid; gap:14px }
+  .g2{ grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) }
+  .g3{ grid-template-columns:repeat(auto-fit,minmax(232px,1fr)) }
+
+  .card{
+    background:var(--soft); border:1px solid var(--line);
+    border-radius:var(--radius); padding:22px 24px; text-decoration:none;
+    display:flex; flex-direction:column; gap:7px;
+    transition:border-color .18s ease,transform .18s ease,background .18s ease;
+  }
+  a.card:hover{ border-color:#33455C; transform:translateY(-2px); background:#141D29 }
+  .card h3{ margin:0; font-size:1rem; font-weight:700; color:#fff; letter-spacing:-.01em }
+  .card p{ margin:0; font-size:.87rem; color:var(--dim) }
+  .card .tag{
+    font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--faint); margin-bottom:2px;
+  }
+  .num{
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:12px; color:#5C7C99; margin-right:8px;
+  }
+
+  pre{
+    background:#080C11; border:1px solid var(--line); border-radius:12px;
+    padding:18px 20px; overflow-x:auto; margin:0;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:.82rem; line-height:1.65; color:#C7D4E2;
+  }
+  code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.88em }
+  p code, li code, td code{
+    background:rgba(255,255,255,.06); border:1px solid var(--line);
+    padding:1.5px 6px; border-radius:5px; color:#C7D4E2;
+  }
+
+  table{ width:100%; border-collapse:collapse; font-size:.88rem }
+  th,td{ text-align:left; padding:11px 14px; border-bottom:1px solid rgba(255,255,255,.06) }
+  th{ color:var(--faint); font-size:11px; text-transform:uppercase; letter-spacing:.07em; font-weight:600 }
+  td code{ white-space:nowrap }
+
+  footer{
+    padding:34px 0 52px; border-top:1px solid rgba(255,255,255,.07);
+    display:flex; flex-wrap:wrap; gap:18px; justify-content:space-between;
+    font-size:.82rem; color:var(--faint);
+  }
+  footer nav{ display:flex; gap:18px; flex-wrap:wrap }
+  footer a{ color:var(--faint); text-decoration:none }
+  footer a:hover{ color:#fff }
+
+  .credit{
+    margin-top:20px; padding:14px 18px; border-radius:12px;
+    background:rgba(255,255,255,.03); border:1px solid var(--line);
+    font-size:.82rem; color:var(--dim);
+  }
+  @media (prefers-reduced-motion:reduce){ .btn,.card{ transition:none } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <main>
+  <header>
+    <div class="brand">
+      <span class="mark" aria-hidden="true">N</span>
+      <span>NovaPulse Edge Map</span>
+    </div>
+
+    <span class="pill"><i aria-hidden="true"></i> No API key &middot; no tracking &middot; MIT</span>
+
+    <h1>An edge-probe status map<br /><em>that shows real geography.</em></h1>
+
+    <p class="lede">
+      Drop-in replacement for the abstract SVG map most status pages ship with.
+      Real OpenStreetMap tiles, pulsing markers at true coordinates, per-node
+      latency sparklines, p95, live polling with exponential backoff, and automatic
+      incident detection. About 18&nbsp;KB gzipped, zero runtime dependencies
+      beyond Leaflet.
+    </p>
+
+    <div class="cta">
+      <a class="btn btn-primary" href="./examples/05-advanced.html">Open the advanced demo</a>
+      <a class="btn" href="#install">Quick start</a>
+      <a class="btn" href="./docs/ADVANCED.md">Feature reference</a>
+      <a class="btn" href="./docs/DEPLOY.md">Deploy guide</a>
+    </div>
+
+    <div class="badges">
+      <span class="badge"><b>Lighthouse 100</b> accessibility</span>
+      <span class="badge"><b>71</b> tests, 0 dependencies</span>
+      <span class="badge"><b>~18 KB</b> gzipped</span>
+      <span class="badge">Works in an <b>iframe</b></span>
+      <span class="badge">React &amp; Vue ready</span>
+    </div>
+  </header>
+
+  <!-- ── live demo ── -->
+  <div class="demo">
+    <div class="demo-head">
+      <h2>Live demo &mdash; every feature enabled</h2>
+      <p class="note">Polling a real JSON feed. Use the controls above the map.</p>
+    </div>
+
+    <div id="demo"></div>
+  </div>
+
+  <!-- ── install ── -->
+  <section id="install">
+    <h2 class="h2">Quick start</h2>
+    <p class="sub">
+      One attribute and two script tags. Auto-init scans the DOM on
+      <code>DOMContentLoaded</code>.
+    </p>
+<pre><code>&lt;link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /&gt;
+&lt;script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"&gt;&lt;/script&gt;
+&lt;script src="./dist/novapulse.min.js"&gt;&lt;/script&gt;
+
+&lt;div data-novapulse-map
+     data-nodes-url="/data/probes.json"
+     data-height="420"
+     data-show-stats="true"
+     data-show-table="true"&gt;&lt;/div&gt;</code></pre>
+  </section>
+
+  <!-- ── features ── -->
+  <section>
+    <h2 class="h2">What's in the box</h2>
+    <p class="sub">Everything is opt-in. The defaults preserve the minimal 1.0 behaviour exactly.</p>
+    <div class="grid g3">
+      <div class="card">
+        <span class="tag">Latency</span>
+        <h3>Sparklines &amp; p95</h3>
+        <p>A bounded per-node sample history drawn as inline SVG. p50, p95 and p99, because a mean hides tail latency.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Live</span>
+        <h3>Polling + backoff</h3>
+        <p>The interval doubles on failure, caps at 32&times;, and resets the instant a poll succeeds.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Alerts</span>
+        <h3>Incident detection</h3>
+        <p><code>statuschange</code> fires once per real transition. <code>recovered</code> fires on return to operational.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Interaction</span>
+        <h3>Search, filter, sort</h3>
+        <p>Search across name, region, country and provider. Keyboard-sortable columns with <code>aria-sort</code>.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Cartography</span>
+        <h3>Zoom-aware clustering</h3>
+        <p>Nodes that would overlap merge into one marker at their centroid and split apart on zoom.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Integration</span>
+        <h3>Embeds anywhere</h3>
+        <p>Script tag, npm, React, Vue, or an <code>iframe</code> driven over <code>postMessage</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── examples ── -->
+  <section>
+    <h2 class="h2">Examples</h2>
+    <p class="sub">Each one demonstrates a different integration path. All are self-contained.</p>
+    <div class="grid g2">
+      <a class="card" href="./examples/01-auto-init.html">
+        <span class="tag"><span class="num">01</span>Auto-init</span>
+        <h3>No JavaScript on the page</h3>
+        <p>One <code>data-novapulse-map</code> attribute, then drive the public API from the console.</p>
+      </a>
+      <a class="card" href="./examples/02-js-api.html">
+        <span class="tag"><span class="num">02</span>JavaScript API</span>
+        <h3>Two independent maps</h3>
+        <p>Proves there is no global state or ID collision. Light and dark themes side by side.</p>
+      </a>
+      <a class="card" href="./examples/03-iframe-host.html">
+        <span class="tag"><span class="num">03</span>iframe embed</span>
+        <h3>postMessage, both directions</h3>
+        <p>A host page pushing node updates and reading state from an embedded widget.</p>
+      </a>
+      <a class="card" href="./examples/04-live-feed.html">
+        <span class="tag"><span class="num">04</span>Live feed</span>
+        <h3>Polling a JSON endpoint</h3>
+        <p>The production pattern, with a simulated telemetry API and error handling.</p>
+      </a>
+      <a class="card" href="./examples/05-advanced.html">
+        <span class="tag"><span class="num">05</span>Advanced</span>
+        <h3>Everything at once</h3>
+        <p>Sparklines, p95, trends, search, filters, sorting, theming and incident detection.</p>
+      </a>
+      <a class="card" href="./examples/embed-widget.html">
+        <span class="tag">Widget</span>
+        <h3>The bare embeddable frame</h3>
+        <p>Exactly what you would point a third-party <code>&lt;iframe&gt;</code> at.</p>
+      </a>
+    </div>
+  </section>
+
+  <!-- ── API ── -->
+  <section>
+    <h2 class="h2">Core API</h2>
+    <p class="sub">
+      Every method is safe to call after <code>destroy()</code> &mdash; it becomes a
+      no-op rather than throwing.
+    </p>
+    <table>
+      <thead>
+        <tr><th>Method</th><th>Returns</th><th>Does</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>setNodes(nodes)</code></td><td><code>this</code></td><td>Replace every node</td></tr>
+        <tr><td><code>getNode(id)</code></td><td><code>node | null</code></td><td>One node, as a copy</td></tr>
+        <tr><td><code>setLive(on)</code></td><td><code>this</code></td><td>Pause or resume probing</td></tr>
+        <tr><td><code>poll(url)</code></td><td><code>Promise</code></td><td>Fetch the feed once</td></tr>
+        <tr><td><code>startPolling(url)</code></td><td><code>this</code></td><td>Poll now, then on schedule</td></tr>
+        <tr><td><code>setSearch(q)</code></td><td><code>this</code></td><td>Filter the table</td></tr>
+        <tr><td><code>setSort(key, dir)</code></td><td><code>this</code></td><td>Sort the table</td></tr>
+        <tr><td><code>getPercentiles(id)</code></td><td><code>object | null</code></td><td>min, p50, p95, p99, max, mean</td></tr>
+        <tr><td><code>setTheme(theme)</code></td><td><code>this</code></td><td>Swap tiles and CSS variables</td></tr>
+        <tr><td><code>exportJSON()</code></td><td><code>object</code></td><td>State plus history, downloads too</td></tr>
+        <tr><td><code>destroy()</code></td><td><code>void</code></td><td>Timers, listeners and DOM all released</td></tr>
+        <tr><td><code>on(event, fn)</code></td><td><code>function</code></td><td>Subscribe; returns an unsubscriber</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── data ── -->
+  <section>
+    <h2 class="h2">Feed format</h2>
+    <p class="sub">
+      Any endpoint returning JSON works. Omit <code>latency</code> and it is treated as
+      <em>unknown</em>, never <code>0 ms</code> &mdash; a fabricated zero would make a
+      broken probe look like the fastest node on the map.
+    </p>
+<pre><code>[
+  { "id": "iad", "name": "Ashburn", "region": "us-east", "country": "US",
+    "lat": 39.0438, "lon": -77.4874,
+    "status": "Operational", "latency": 12,
+    "uptime": 99.97, "note": "" }
+]</code></pre>
+  </section>
+
+  <div class="credit">
+    Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>
+    contributors, available under the
+    <a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener noreferrer">ODbL</a>.
+    Tiles are served by the OpenStreetMap Foundation, the German OSM mirror, or CARTO,
+    each under its own usage policy &mdash; the attribution shown on every map must not be
+    removed. Built on <a href="https://leafletjs.com" target="_blank" rel="noopener noreferrer">Leaflet</a> (BSD-2-Clause).
+  </div>
+  </main>
+
+  <footer>
+    <span>MIT &copy; 2026 Sudhir Singh</span>
+    <nav aria-label="Footer">
+      <a href="./README.md">README</a>
+      <a href="./docs/ADVANCED.md">Advanced</a>
+      <a href="./docs/DEPLOY.md">Deploy</a>
+      <a href="./CHANGELOG.md">Changelog</a>
+      <a href="./CONTRIBUTING.md">Contributing</a>
+      <a href="https://github.com/SudhirDevOps1/NovaPulse-Map/issues">Issues</a>
+    </nav>
+  </footer>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="./dist/novapulse.min.js"></script>
+<script>
+/* The hero demo runs a scripted feed rather than fetching, so the page works
+   from a plain file:// or a cold CDN cache without a server. */
+(function () {
+  'use strict';
+  var BASE = [
+    { id:'iad', name:'Ashburn',      region:'us-east',    country:'US', lat: 39.0438, lon: -77.4874, base: 12 },
+    { id:'ewr', name:'New York',     region:'us-east',    country:'US', lat: 40.7128, lon: -74.0060, base: 18 },
+    { id:'ord', name:'Chicago',      region:'us-central', country:'US', lat: 41.8781, lon: -87.6298, base: 24 },
+    { id:'dfw', name:'Dallas',       region:'us-central', country:'US', lat: 32.7767, lon: -96.7970, base: 31 },
+    { id:'sjc', name:'San Jose',     region:'us-west',    country:'US', lat: 37.3541, lon:-121.9552, base: 42 },
+    { id:'lhr', name:'London',       region:'eu-west',    country:'GB', lat: 51.5074, lon:  -0.1278, base: 78 },
+    { id:'fra', name:'Frankfurt',    region:'eu-central', country:'DE', lat: 50.1109, lon:   8.6821, base: 84 },
+    { id:'ams', name:'Amsterdam',    region:'eu-west',    country:'NL', lat: 52.3676, lon:   4.9041, base: 86 },
+    { id:'dxb', name:'Dubai',        region:'me',         country:'AE', lat: 25.2048, lon:  55.2708, base:121 },
+    { id:'bom', name:'Mumbai',       region:'apac',       country:'IN', lat: 19.0760, lon:  72.8777, base:148 },
+    { id:'gru', name:'Sao Paulo',    region:'sa',         country:'BR', lat:-23.5505, lon: -46.6333, base:156 },
+    { id:'sin', name:'Singapore',    region:'apac',       country:'SG', lat:  1.3521, lon: 103.8198, base:186 },
+    { id:'nrt', name:'Tokyo',        region:'apac',       country:'JP', lat: 35.6762, lon: 139.6503, base:204 },
+    { id:'syd', name:'Sydney',       region:'apac',       country:'AU', lat:-33.8688, lon: 151.2093, base:238 },
+    { id:'jnb', name:'Johannesburg', region:'africa',     country:'ZA', lat:-26.2041, lon:  28.0473, base:169 }
+  ];
+
+  var status = {};
+  BASE.forEach(function (n) { status[n.id] = 'Operational'; });
+  /* One permanent degraded node, so the degraded style is visible on load. */
+  status.bom = 'Degraded';
+
+  function feed() {
+    return BASE.map(function (n) {
+      var down = status[n.id] === 'Down';
+      var spread = 0.22;
+      var jitter = Math.round(n.base * (Math.random() * spread - spread / 2));
+      return {
+        id: n.id, name: n.name, region: n.region, country: n.country,
+        lat: n.lat, lon: n.lon,
+        status: status[n.id],
+        latency: down ? 0 : Math.max(1, n.base + jitter),
+        uptime: down ? 97.4 : 99.9 + Math.random() * 0.09
+      };
+    });
+  }
+
+  var map = new NovaPulseMap({
+    container: '#demo',
+    nodes: feed(),
+    height: 460,
+    theme: 'dark',
+    showControls: true,
+    showStats: true,
+    showTable: true,
+    showSparklines: true,
+    showTrend: true,
+    showUptime: true,
+    sortableTable: true,
+    live: true,
+    refreshMs: 5000
+  });
+
+  /* Scripted incident: brief degrades every ~40s, then recovers. A status page
+     that never shows a failure teaches nothing about what failure looks like. */
+  setInterval(function () {
+    var pool = BASE.filter(function (n) { return status[n.id] === 'Operational'; });
+    if (!pool.length) return;
+    var pick = pool[Math.floor(Math.random() * pool.length)];
+    status[pick.id] = 'Down';
+    map.setNodes(feed());
+    setTimeout(function () {
+      status[pick.id] = 'Operational';
+      map.setNodes(feed());
+    }, 9000);
+  }, 40000);
+})();
+</script>
+</body>
+</html>
