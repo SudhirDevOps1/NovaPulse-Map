@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="NovaPulse Edge Map - NovaPulse Edge Map: a free, keyless edge-probe status map built on Leaflet and OpenStreetMap." />
+<meta name="theme-color" content="#0B0F14" />
+<title>NovaPulse Edge Map - NovaPulse Edge Map</title>
+<link rel="stylesheet" href="dist/novapulse.min.css?v=1.2.0" />
+<style>
+/* Styles for the generated documentation pages.
+   Read and inlined by scripts/docs.mjs. Kept as its own file so it can be
+   linted and edited without escaping it through a template literal. */
+
+:root{
+  --ink:#0B0F14; --soft:#111823; --line:#243244;
+  --fg:#E2E8F0; --dim:#94A3B8; --faint:#9FB0C6; --accent:#7FB6F0;
+}
+*,*::before,*::after{ box-sizing:border-box }
+
+body{
+  margin:0; background:var(--ink); color:var(--fg);
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:16px; line-height:1.68; -webkit-font-smoothing:antialiased;
+}
+a{ color:var(--faint) }
+a:hover{ color:#fff }
+
+.layout{ display:flex; max-width:1180px; margin:0 auto; padding:0 24px; gap:44px }
+
+/* ── Sidebar ───────────────────────────────────────────────────────── */
+.side{
+  width:246px; flex:none; padding:34px 0 60px;
+  position:sticky; top:0; align-self:flex-start;
+  max-height:100vh; overflow-y:auto;
+}
+.side .mark{
+  width:32px; height:32px; display:grid; place-items:center; border-radius:9px;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12);
+  font-weight:700; font-size:.8rem; margin-bottom:14px;
+  text-decoration:none; color:var(--fg);
+}
+.side h2{ margin:0 0 3px; font-size:.95rem; letter-spacing:-.01em; line-height:1.3 }
+.side .ver{ margin:0 0 22px; font-size:11.5px; color:var(--faint) }
+.side nav{ display:flex; flex-direction:column; gap:1px }
+.side nav a{
+  display:block; padding:8px 11px; border-radius:8px;
+  font-size:.855rem; text-decoration:none; color:var(--dim);
+  border-left:2px solid transparent;
+}
+.side nav a:hover{ background:rgba(255,255,255,.04); color:#fff }
+.side nav a[aria-current="page"]{
+  background:rgba(127,182,240,.1); color:#fff; border-left-color:var(--accent);
+}
+.side nav .sep{
+  margin:14px 0 7px; font-size:10.5px; text-transform:uppercase;
+  letter-spacing:.09em; color:var(--faint); padding-left:11px;
+}
+.side .ext{ margin-top:26px; padding-top:18px; border-top:1px solid var(--line) }
+.side .ext a{ display:block; padding:6px 11px; font-size:.83rem; color:var(--faint); text-decoration:none }
+.side .ext a:hover{ color:#fff }
+
+/* ── Content ───────────────────────────────────────────────────────── */
+main{ flex:1; min-width:0; padding:34px 0 80px }
+.crumb{ font-size:.8rem; color:var(--faint); margin-bottom:20px }
+.crumb a{ text-decoration:none }
+.crumb a:hover{ color:#fff }
+
+.md{ max-width:74ch }
+.md h1{ margin:0 0 8px; font-size:clamp(28px,4vw,38px); line-height:1.15; letter-spacing:-.03em; font-weight:800 }
+.md h2{
+  margin:44px 0 14px; font-size:1.42rem; letter-spacing:-.02em; font-weight:700;
+  padding-bottom:9px; border-bottom:1px solid var(--line);
+}
+.md h3{ margin:32px 0 10px; font-size:1.1rem; letter-spacing:-.015em; font-weight:700 }
+.md h4{ margin:26px 0 8px; font-size:.97rem; font-weight:700; color:#CBD5E1 }
+.md h1 + p{ color:var(--dim); font-size:1.02rem }
+.md p{ margin:0 0 15px }
+.md ul,.md ol{ margin:0 0 17px; padding-left:24px }
+.md li{ margin:5px 0 }
+.md li>ul,.md li>ol{ margin:5px 0 }
+.md strong{ color:#fff; font-weight:700 }
+.md del{ color:var(--faint) }
+.md hr{ border:0; border-top:1px solid var(--line); margin:38px 0 }
+
+.md blockquote{
+  margin:0 0 18px; padding:12px 18px; border-left:3px solid var(--accent);
+  background:rgba(127,182,240,.06); border-radius:0 10px 10px 0; color:#CBD5E1;
+}
+.md blockquote p:last-child{ margin-bottom:0 }
+
+/* The scroll container is a wrapper, not the table itself. `display:block` on a
+   <table> strips its table semantics, which is why the header cells were being
+   reported as headers of nothing. */
+.md .tw{ overflow-x:auto; margin:0 0 20px; border-radius:10px }
+.md table{ width:100%; border-collapse:collapse; font-size:.9rem }
+.md th{
+  text-align:left; padding:10px 13px; background:rgba(255,255,255,.04);
+  border-bottom:1px solid var(--line); color:var(--faint);
+  font-size:11px; text-transform:uppercase; letter-spacing:.06em; white-space:nowrap;
+}
+.md td{ padding:10px 13px; border-bottom:1px solid rgba(255,255,255,.05); vertical-align:top }
+
+.md code{
+  background:rgba(255,255,255,.06); border:1px solid var(--line);
+  padding:1.5px 6px; border-radius:5px; color:#C7D4E2; font-size:.88em;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  white-space:nowrap;
+}
+.md img{ max-width:100%; border-radius:10px }
+
+/* ── Code block with copy button ───────────────────────────────────── */
+.code{ position:relative; background:#080C11; border:1px solid var(--line); border-radius:12px; margin:0 0 20px }
+.code-bar{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:8px 13px; border-bottom:1px solid var(--line);
+  font-size:10.5px; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--faint); font-weight:700;
+}
+.copy{
+  background:transparent; border:1px solid var(--line); color:var(--faint);
+  border-radius:7px; padding:4px 11px; font:inherit; font-size:10.5px; font-weight:700;
+  letter-spacing:.04em; cursor:pointer; min-height:26px; text-transform:uppercase;
+  transition:background .16s ease,color .16s ease;
+}
+.copy:hover{ background:rgba(255,255,255,.06); color:#fff }
+.copy:focus-visible{ outline:2px solid #38BDF8; outline-offset:2px }
+.copy.done{ color:#22C55E; border-color:rgba(34,197,94,.4) }
+
+pre{
+  margin:0; padding:15px 17px; overflow-x:auto;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:.815rem; line-height:1.68; color:#C7D4E2;
+}
+pre code{ background:none; border:0; padding:0; font-size:inherit; color:inherit; white-space:pre }
+
+/* Token colours — all AA against the #080C11 code background. */
+.t-com{ color:#6B7C93; font-style:italic }
+.t-str{ color:#8FD48F }
+.t-key{ color:#7FB6F0 }
+.t-num{ color:#E9B872 }
+.t-fn { color:#C9A6F0 }
+.t-atr{ color:#7FD4D4 }
+.t-tag{ color:#F08A7A }
+.t-pun{ color:#8A99AC }
+
+/* ── Footer of each page ───────────────────────────────────────────── */
+.editbar{
+  margin-top:56px; padding-top:22px; border-top:1px solid var(--line);
+  display:flex; flex-wrap:wrap; gap:16px; font-size:.84rem; color:var(--faint);
+}
+.editbar a{ text-decoration:none }
+.editbar a:hover{ color:#fff; text-decoration:underline }
+
+@media (max-width:860px){
+  .layout{ flex-direction:column; gap:0 }
+  .side{
+    position:static; width:auto; max-height:none;
+    padding-bottom:16px; border-bottom:1px solid var(--line); margin-bottom:26px;
+  }
+  .side nav{ flex-direction:row; flex-wrap:wrap }
+  .side nav .sep{ width:100%; margin:10px 0 4px }
+  .side .ext{ display:flex; gap:18px; flex-wrap:wrap }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .copy{ transition:none }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="side">
+    <a href="index.html" class="mark" aria-label="NovaPulse Edge Map home">N</a>
+    <h2>NovaPulse Edge Map</h2>
+    <p class="ver">v1.2.0 &middot; MIT</p>
+    <nav aria-label="Documentation"><span class="sep">Start here</span><a href="../README.html">README</a><a href="GETTING-STARTED.html">Getting started</a><span class="sep">Reference</span><a href="ADVANCED.html">Advanced</a><a href="DEPLOY.html">Deploy</a><a href="FILE-MAP.html">File map</a><span class="sep">Project</span><a href="../CHANGELOG.html">Changelog</a><a href="../CONTRIBUTING.html">Contributing</a></nav>
+    <div class="ext">
+      <a href="index.html">Back to showcase</a>
+      <a href="https://github.com/SudhirDevOps1/NovaPulse-Map/blob/main/README.md" target="_blank" rel="noopener noreferrer">View source on GitHub</a>
+      <a href="https://github.com/SudhirDevOps1/NovaPulse-Map/issues" target="_blank" rel="noopener noreferrer">Report an issue</a>
+    </div>
+  </aside>
+
+  <main>
+    <p class="crumb"><a href="index.html">NovaPulse Edge Map</a> &rsaquo; README</p>
+    <article class="md">
+<p>&lt;div align=&quot;center&quot;&gt;</p>
+<h1 id="novapulse-edge-map">NovaPulse Edge Map</h1>
+<p><strong>An embeddable, keyless, production-grade world map of edge-probe vantage points.</strong></p>
+<p><a href="https://www.npmjs.com/package/novapulse-edge-map"><img src="https://img.shields.io/badge/npm-v1.1.0-22c55e" alt="npm version" loading="lazy"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-38a169" alt="license" loading="lazy"></a> <a href="dist/"><img src="https://img.shields.io/badge/gzip-~18%20KB-5c7cfa" alt="size" loading="lazy"></a> <a href="https://developer.chrome.com/docs/lighthouse/accessibility"><img src="https://img.shields.io/badge/a11y-Lighthouse%20100-22c55e" alt="a11y" loading="lazy"></a> <a href="https://www.openstreetmap.org/copyright"><img src="https://img.shields.io/badge/API%20key-required%3F-no-38a169" alt="no key" loading="lazy"></a> <a href="package.json"><img src="https://img.shields.io/badge/dependencies-0-5c7cfa" alt="deps" loading="lazy"></a></p>
+<p>No API key. No credit card. No tracking. No build step required.</p>
+<p><a href="./index.html"><strong>Live showcase →</strong></a></p>
+<p>&lt;/div&gt;</p>
+<hr>
+<p>A drop-in replacement for the abstract SVG map most status pages ship with. Real OpenStreetMap geography, pulsing status markers at true coordinates, latency sparklines with p95, live polling with exponential backoff, and automatic incident detection.</p>
+<ul><li><strong>~18 KB gzipped</strong>, zero runtime dependencies beyond Leaflet</li><li><strong>Works everywhere</strong> — plain <code>&amp;lt;script&amp;gt;</code>, npm, React, Vue, or <code>&amp;lt;iframe&amp;gt;</code></li><li><strong>Accessible by default</strong> — Lighthouse 100, keyboard-navigable, screen-reader safe</li><li><strong>No global state</strong> — any number of independent maps on one page</li><li><strong>Honest about unknowns</strong> — a missing latency renders as <code>—</code>, never <code>0 ms</code></li></ul>
+<hr>
+<h2 id="documentation">Documentation</h2>
+<div class="tw"><table><thead><tr><th scope="col">Doc</th><th scope="col">What it covers</th></tr></thead><tbody><tr><td><a href="docs/GETTING-STARTED.html"><strong>Getting started</strong></a></td><td>Install, first render, the data contract, when <em>not</em> to use it</td></tr><tr><td><a href="docs/ADVANCED.html"><strong>Advanced</strong></a></td><td>Every feature in depth, plus honest limitations</td></tr><tr><td><a href="docs/DEPLOY.html"><strong>Deploy</strong></a></td><td>Pages, unpkg, Vercel, nginx, CSP headers, hosting a live feed</td></tr><tr><td><a href="docs/FILE-MAP.html"><strong>File map</strong></a></td><td>What every file is for, and why <code>.gitignore</code> looks like it does</td></tr><tr><td><a href="./examples/">Examples</a></td><td>Six runnable demos, offline-capable</td></tr><tr><td><a href="CHANGELOG.html">Changelog</a></td><td>What changed and why</td></tr><tr><td><a href="CONTRIBUTING.html">Contributing</a></td><td>Ground rules and the traps to avoid</td></tr></tbody></table></div>
+<hr>
+<h2 id="table-of-contents">Table of contents</h2>
+<ul><li><a href="#quick-start">Quick start</a></li><li><a href="#usage">Usage</a>
+
+&lt;ul&gt;&lt;li&gt;&lt;a href=&quot;#1-auto-init-no-js&quot;&gt;1. Auto-init (no JS)&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href=&quot;#2-javascript-api&quot;&gt;2. JavaScript API&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href=&quot;#3-react&quot;&gt;3. React&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href=&quot;#4-vue&quot;&gt;4. Vue&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href=&quot;#5-iframe-embed&quot;&gt;5. iframe embed&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href=&quot;#6-npm&quot;&gt;6. npm&lt;/a&gt;&lt;/li&gt;&lt;/ul&gt;</li><li><a href="#api">API</a>
+
+&lt;ul&gt;&lt;li&gt;&lt;a href=&quot;#options&quot;&gt;Options&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href=&quot;#methods&quot;&gt;Methods&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href=&quot;#events&quot;&gt;Events&lt;/a&gt;&lt;/li&gt;&lt;li&gt;&lt;a href=&quot;#state&quot;&gt;State&lt;/a&gt;&lt;/li&gt;&lt;/ul&gt;</li><li><a href="#data-format">Data format</a></li><li><a href="#tile-sources">Tile sources</a></li><li><a href="#theming">Theming</a></li><li><a href="#accessibility">Accessibility</a></li><li><a href="#performance">Performance</a></li><li><a href="#troubleshooting">Troubleshooting</a></li><li><a href="#contributing">Contributing</a></li><li><a href="#license">License</a></li></ul>
+<hr>
+<h2 id="quick-start">Quick start</h2>
+<div class="code"><div class="code-bar"><span>html</span><button class="copy" type="button" data-copy>Copy</button></div><pre><code data-lang="html">&lt;link rel=&quot;stylesheet&quot; href=&quot;https://unpkg.com/leaflet@1.9.4/dist/leaflet.css&quot; /&gt;
+&lt;script src=&quot;https://unpkg.com/leaflet@1.9.4/dist/leaflet.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;https://unpkg.com/novapulse-edge-map/dist/novapulse.min.js&quot;&gt;&lt;/script&gt;
+
+&lt;div data-novapulse-map data-height=&quot;420&quot; data-nodes='[
+  {&quot;id&quot;:&quot;iad&quot;,&quot;name&quot;:&quot;Ashburn&quot;,&quot;lat&quot;:39.0438,&quot;lon&quot;:-77.4874,&quot;status&quot;:&quot;Operational&quot;,&quot;latency&quot;:12}
+]'&gt;&lt;/div&gt;</code></pre></div>
+<p>That's the whole integration. The map mounts itself on <code>DOMContentLoaded</code>.</p>
+<hr>
+<h2 id="usage">Usage</h2>
+<h3 id="1-auto-init-no-js">1. Auto-init (no JS)</h3>
+<p>Add <code>data-novapulse-map</code> to any element. Every <code>data-*</code> attribute maps to an option, camelCased and kebab-cased.</p>
+<div class="code"><div class="code-bar"><span>html</span><button class="copy" type="button" data-copy>Copy</button></div><pre><code data-lang="html">&lt;div
+  data-novapulse-map
+  data-height=&quot;440&quot;
+  data-zoom=&quot;2&quot;
+  data-cluster=&quot;true&quot;
+  data-show-toggle=&quot;true&quot;
+  data-show-stats=&quot;true&quot;
+  data-show-table=&quot;true&quot;
+  data-nodes='[{&quot;id&quot;:&quot;iad&quot;,&quot;name&quot;:&quot;Ashburn&quot;,&quot;lat&quot;:39.0438,&quot;lon&quot;:-77.4874,&quot;latency&quot;:12}]'
+&gt;&lt;/div&gt;</code></pre></div>
+<div class="tw"><table><thead><tr><th scope="col">Attribute</th><th scope="col">Type</th><th scope="col">Notes</th></tr></thead><tbody><tr><td><code>data-nodes</code></td><td>JSON array</td><td>Inline node list</td></tr><tr><td><code>data-nodes-url</code></td><td>URL string</td><td>Fetch nodes on init</td></tr><tr><td><code>data-theme</code></td><td><code>dark</code> | <code>light</code></td><td>Chooses the default tile preset</td></tr><tr><td><code>data-tile</code></td><td>preset name</td><td>See <a href="#tile-sources">Tile sources</a></td></tr><tr><td><code>data-tile-url</code></td><td>URL template</td><td>Full override</td></tr><tr><td><code>data-height</code></td><td>number</td><td>Container height in px</td></tr><tr><td><code>data-zoom</code></td><td>number</td><td>Initial zoom</td></tr><tr><td><code>data-refresh</code></td><td>number</td><td>Refresh interval in ms</td></tr><tr><td><code>data-cluster</code></td><td>boolean</td><td><code>&amp;quot;false&amp;quot;</code> disables</td></tr><tr><td><code>data-show-toggle</code></td><td>boolean</td><td>Live-probing switch</td></tr><tr><td><code>data-show-stats</code></td><td>boolean</td><td>Summary cards</td></tr><tr><td><code>data-show-table</code></td><td>boolean</td><td>Sortable node table</td></tr><tr><td><code>data-show-legend</code></td><td>boolean</td><td>Defaults to <code>true</code></td></tr><tr><td><code>data-show-scale</code></td><td>boolean</td><td>Scale bar, defaults to <code>true</code></td></tr><tr><td><code>data-show-hint</code></td><td>boolean</td><td>&quot;scroll to zoom&quot; chip, defaults to <code>true</code></td></tr><tr><td><code>data-scroll-wheel-zoom</code></td><td>boolean</td><td>Defaults to <code>true</code></td></tr></tbody></table></div>
+<h3 id="2-javascript-api">2. JavaScript API</h3>
+<div class="code"><div class="code-bar"><span>js</span><button class="copy" type="button" data-copy>Copy</button></div><pre><code data-lang="js">const map = new NovaPulseMap({
+  container: '#probe-map',
+  height: 440,
+  theme: 'dark',
+  nodes: [
+    { id: 'iad', name: 'Ashburn', region: 'us-east',
+      lat: 39.0438, lon: -77.4874, status: 'Operational', latency: 12 }
+  ],
+  showStats: true,
+  showTable: true,
+  onNodeClick(node, map) {
+    console.log(node.name, node.status, node.latency + 'ms');
+  }
+});
+
+// Later
+map.setNodes(newNodes);
+map.toggleLive();
+map.getState();
+map.destroy();</code></pre></div>
+<p>Works with or without <code>new</code> — <code>NovaPulseMap({...})</code> returns an instance.</p>
+<h3 id="3-react">3. React</h3>
+<p>The library owns its own DOM, so a ref is the right integration — not JSX children.</p>
+<div class="code"><div class="code-bar"><span>jsx</span><button class="copy" type="button" data-copy>Copy</button></div><pre><code data-lang="jsx">import { useEffect, useRef } from 'react';
+import 'leaflet/dist/leaflet.css';
+import 'novapulse-edge-map/style.css';
+import NovaPulseMap from 'novapulse-edge-map';
+
+export function ProbeMap({ nodes }) {
+  const host = useRef(null);
+
+  useEffect(() =&gt; {
+    const map = new NovaPulseMap({
+      container: host.current,
+      nodes,
+      height: 440,
+      showStats: true,
+      showTable: true,
+    });
+    return () =&gt; map.destroy();   // essential: clears timers + listeners
+  }, []);                          // mount once
+
+  useEffect(() =&gt; { mapRef.current?.setNodes(nodes); }, [nodes]);
+
+  return &lt;div ref={host} /&gt;;
+}</code></pre></div>
+<blockquote><p><strong>Do not</strong> put <code>data-novapulse-map</code> on the same element React manages. React would fight the library over the DOM. Pick one: auto-init <strong>or</strong> the JS API.</p></blockquote>
+<h3 id="4-vue">4. Vue</h3>
+<div class="code"><div class="code-bar"><span>vue</span><button class="copy" type="button" data-copy>Copy</button></div><pre><code data-lang="vue">&lt;script setup&gt;
+import { onMounted, onBeforeUnmount, ref, watch } from 'vue';
+import 'leaflet/dist/leaflet.css';
+import 'novapulse-edge-map/style.css';
+import NovaPulseMap from 'novapulse-edge-map';
+
+const props = defineProps({ nodes: { type: Array, required: true } });
+
+const host = ref(null);
+let map = null;
+
+onMounted(() =&gt; {
+  map = new NovaPulseMap({ container: host.value, nodes: props.nodes, height: 440 });
+});
+watch(() =&gt; props.nodes, (n) =&gt; map?.setNodes(n));
+onBeforeUnmount(() =&gt; map?.destroy());
+&lt;/script&gt;
+
+&lt;template&gt;&lt;div ref=&quot;host&quot; /&gt;&lt;/template&gt;</code></pre></div>
+<h3 id="5-iframe-embed">5. iframe embed</h3>
+<p>For a third-party host, a docs site, or anywhere CSS would collide. Copy <a href="examples/embed-widget.html"><code>examples/embed-widget.html</code></a> to your server:</p>
+<div class="code"><div class="code-bar"><span>html</span><button class="copy" type="button" data-copy>Copy</button></div><pre><code data-lang="html">&lt;iframe src=&quot;https://your-cdn.example/widget.html&quot; width=&quot;100%&quot; height=&quot;620&quot;
+        title=&quot;Edge status&quot; loading=&quot;lazy&quot;&gt;&lt;/iframe&gt;</code></pre></div>
+<p>The widget talks to its parent over <code>postMessage</code>:</p>
+<div class="code"><div class="code-bar"><span>js</span><button class="copy" type="button" data-copy>Copy</button></div><pre><code data-lang="js">const frame = document.querySelector('iframe');
+const send = (msg) =&gt; frame.contentWindow.postMessage({ __novaPulse: 1, ...msg }, '*');
+
+send({ type: 'getState' });
+send({ type: 'setLive', live: false });
+send({ type: 'setNodes', nodes: [...] });
+send({ type: 'fit' });
+send({ type: 'resize' });
+
+window.addEventListener('message', (ev) =&gt; {
+  if (ev.data?.__novaPulse === 1 &amp;&amp; ev.data.type === 'state') {
+    console.log(ev.data.state.status, ev.data.state.counts);
+  }
+});</code></pre></div>
+<p><strong>Host → widget:</strong> <code>ping</code>, <code>getState</code>, <code>setNodes</code>, <code>setLive</code>, <code>resize</code>, <code>fit</code> <strong>Widget → host:</strong> <code>ready</code>, <code>state</code>, <code>nodes</code>, <code>live</code></p>
+<h3 id="6-npm">6. npm</h3>
+<div class="code"><div class="code-bar"><span>bash</span><button class="copy" type="button" data-copy>Copy</button></div><pre><code data-lang="bash">npm install novapulse-edge-map leaflet</code></pre></div>
+<div class="code"><div class="code-bar"><span>js</span><button class="copy" type="button" data-copy>Copy</button></div><pre><code data-lang="js">import NovaPulseMap from 'novapulse-edge-map';
+import 'novapulse-edge-map/style.css';
+import 'leaflet/dist/leaflet.css';</code></pre></div>
+<p>Leaflet is a <strong>peer dependency</strong> — we never bundle it, per its licence.</p>
+<hr>
+<h2 id="api">API</h2>
+<h3 id="options">Options</h3>
+<div class="tw"><table><thead><tr><th scope="col">Option</th><th scope="col">Type</th><th scope="col">Default</th><th scope="col">Description</th></tr></thead><tbody><tr><td><code>container</code></td><td><code>HTMLElement</code> | <code>string</code></td><td><em>required</em></td><td>Target element or selector</td></tr><tr><td><code>nodes</code></td><td><code>EdgeNode[]</code></td><td><code>[]</code></td><td>Initial node list</td></tr><tr><td><code>nodesUrl</code></td><td><code>string</code></td><td><code>null</code></td><td>Fetch nodes as JSON on init</td></tr><tr><td><code>theme</code></td><td><code>'dark'</code> | <code>'light'</code></td><td><code>'dark'</code></td><td>Sets the default tile preset</td></tr><tr><td><code>tile</code></td><td><code>TilePreset</code></td><td>per theme</td><td>Named basemap preset</td></tr><tr><td><code>tileUrl</code></td><td><code>string</code></td><td><code>null</code></td><td>Full tile URL template override</td></tr><tr><td><code>height</code></td><td><code>number</code></td><td><code>420</code></td><td>Container height in px</td></tr><tr><td><code>zoom</code></td><td><code>number</code></td><td><code>2</code></td><td>Initial zoom</td></tr><tr><td><code>minZoom</code></td><td><code>number</code></td><td><code>1</code></td><td>Lower zoom bound</td></tr><tr><td><code>maxZoom</code></td><td><code>number</code></td><td><code>8</code></td><td>Upper zoom bound</td></tr><tr><td><code>cluster</code></td><td><code>boolean</code></td><td><code>true</code></td><td>Merge overlapping nodes</td></tr><tr><td><code>clusterRadius</code></td><td><code>number</code></td><td><code>34</code></td><td>Merge threshold in screen px</td></tr><tr><td><code>live</code></td><td><code>boolean</code></td><td><code>true</code></td><td>Animate latency jitter</td></tr><tr><td><code>refreshMs</code></td><td><code>number</code></td><td><code>5000</code></td><td>Refresh interval while live</td></tr><tr><td><code>jitter</code></td><td><code>number</code></td><td><code>0.14</code></td><td>Jitter as a fraction of latency</td></tr><tr><td><code>showToggle</code></td><td><code>boolean</code></td><td><code>false</code></td><td>Live-probing switch</td></tr><tr><td><code>showStats</code></td><td><code>boolean</code></td><td><code>false</code></td><td>Summary cards</td></tr><tr><td><code>showTable</code></td><td><code>boolean</code></td><td><code>false</code></td><td>Node table</td></tr><tr><td><code>showLegend</code></td><td><code>boolean</code></td><td><code>true</code></td><td>Status legend</td></tr><tr><td><code>showScale</code></td><td><code>boolean</code></td><td><code>true</code></td><td>Scale bar</td></tr><tr><td><code>showHint</code></td><td><code>boolean</code></td><td><code>true</code></td><td>Interaction hint chip</td></tr><tr><td><code>scrollWheelZoom</code></td><td><code>boolean</code></td><td><code>true</code></td><td>Arms on hover, never traps page scroll</td></tr><tr><td><code>emitStateToParent</code></td><td><code>boolean</code></td><td><code>true</code></td><td><code>postMessage</code> state when iframed</td></tr><tr><td><code>colors</code></td><td><code>object</code></td><td>see below</td><td>Status colour overrides</td></tr><tr><td><code>onNodeClick</code></td><td><code>function</code></td><td><code>null</code></td><td>Node click handler</td></tr></tbody></table></div>
+<h3 id="advanced-options-v110">Advanced options (v1.1.0)</h3>
+<div class="tw"><table><thead><tr><th scope="col">Option</th><th scope="col">Type</th><th scope="col">Default</th><th scope="col">Description</th></tr></thead><tbody><tr><td><code>showControls</code></td><td><code>boolean</code></td><td><code>false</code></td><td>Search, filter, theme, export bar</td></tr><tr><td><code>showSparklines</code></td><td><code>boolean</code></td><td><code>false</code></td><td>Per-node SVG sparkline + p95 column</td></tr><tr><td><code>showTrend</code></td><td><code>boolean</code></td><td><code>false</code></td><td>Latency direction vs prior samples</td></tr><tr><td><code>showUptime</code></td><td><code>boolean</code></td><td><code>false</code></td><td>Uptime column (needs <code>uptime</code> in the data)</td></tr><tr><td><code>showSearch</code></td><td><code>boolean</code></td><td><code>false</code></td><td>Search input in the controls bar</td></tr><tr><td><code>sortableTable</code></td><td><code>boolean</code></td><td><code>true</code></td><td>Click/keyboard sort on table headers</td></tr><tr><td><code>historyLength</code></td><td><code>number</code></td><td><code>24</code></td><td>Samples retained per node (1“720)</td></tr><tr><td><code>autoRefresh</code></td><td><code>boolean</code></td><td><code>true</code></td><td>Start the refresh interval</td></tr><tr><td><code>refreshBackoff</code></td><td><code>boolean</code></td><td><code>true</code></td><td>Exponential backoff on feed failure</td></tr><tr><td><code>pauseWhenHidden</code></td><td><code>boolean</code></td><td><code>true</code></td><td>Slow the interval in a hidden tab</td></tr><tr><td><code>deepLink</code></td><td><code>boolean</code></td><td><code>false</code></td><td><code>#node-id</code> in the URL focuses a marker</td></tr><tr><td><code>persistKey</code></td><td><code>string</code></td><td><code>null</code></td><td><code>localStorage</code> key for state</td></tr><tr><td><code>onStatusChange</code></td><td><code>function</code></td><td><code>null</code></td><td>Fires once per real transition</td></tr><tr><td><code>onFeedError</code></td><td><code>function</code></td><td><code>null</code></td><td>Feed fetch/reject handler</td></tr></tbody></table></div>
+<h3 id="methods">Methods</h3>
+<div class="tw"><table><thead><tr><th scope="col">Method</th><th scope="col">Returns</th><th scope="col">Description</th></tr></thead><tbody><tr><td><code>setNodes(nodes)</code></td><td><code>this</code></td><td>Replace all nodes</td></tr><tr><td><code>getNodes()</code></td><td><code>EdgeNode[]</code></td><td>Copy of current nodes</td></tr><tr><td><code>getNode(id)</code></td><td><code>EdgeNode | null</code></td><td>One node by id</td></tr><tr><td><code>setLive(on)</code></td><td><code>this</code></td><td>Pause or resume probing</td></tr><tr><td><code>toggleLive()</code></td><td><code>this</code></td><td>Flip live state</td></tr><tr><td><code>isLive()</code></td><td><code>boolean</code></td><td>Current live state</td></tr><tr><td><code>zoomIn()</code> / <code>zoomOut()</code></td><td><code>this</code></td><td>Zoom one step</td></tr><tr><td><code>fit()</code></td><td><code>this</code></td><td>Re-fit all nodes</td></tr><tr><td><code>setView(latlng, zoom)</code></td><td><code>this</code></td><td>Jump to a coordinate</td></tr><tr><td><code>getZoom()</code></td><td><code>number</code></td><td>Current zoom</td></tr><tr><td><code>invalidateSize()</code></td><td><code>this</code></td><td>Re-measure after a layout change</td></tr><tr><td><code>getState()</code></td><td><code>MapState</code></td><td>Full serialisable state</td></tr><tr><td><code>destroy()</code></td><td><code>void</code></td><td>Full teardown</td></tr><tr><td><code>on(event, fn)</code></td><td><code>function</code></td><td>Subscribe; returns an unsubscribe fn</td></tr><tr><td><code>off(event, fn)</code></td><td><code>void</code></td><td>Unsubscribe</td></tr></tbody></table></div>
+<h3 id="advanced-methods">Advanced methods</h3>
+<div class="tw"><table><thead><tr><th scope="col">Method</th><th scope="col">Returns</th><th scope="col">Description</th></tr></thead><tbody><tr><td><code>poll(url?)</code></td><td><code>Promise</code></td><td>One fetch of the feed</td></tr><tr><td><code>startPolling(url?)</code></td><td><code>this</code></td><td>Poll now, then on the current interval</td></tr><tr><td><code>stopPolling()</code></td><td><code>this</code></td><td>Clear the pending poll</td></tr><tr><td><code>setSearch(q)</code></td><td><code>this</code></td><td>Filter the table by name/region/country/id</td></tr><tr><td><code>setFilter(status)</code></td><td><code>this</code></td><td><code>all</code> | <code>Operational</code> | <code>Degraded</code> | <code>Down</code></td></tr><tr><td><code>setSort(key, dir)</code></td><td><code>this</code></td><td><code>name</code> | <code>latency</code> | <code>p95</code> | <code>status</code> | <code>region</code> | <code>uptime</code></td></tr><tr><td><code>setTheme(theme)</code></td><td><code>this</code></td><td>Swap tiles and CSS variables</td></tr><tr><td><code>focusNode(id)</code></td><td><code>this</code></td><td>Fly to a node</td></tr><tr><td><code>getHistory(id)</code></td><td><code>(number|null)[]</code></td><td>Samples, oldest first; <code>null</code> = gap</td></tr><tr><td><code>getPercentiles(id)</code></td><td><code>object | null</code></td><td><code>{ samples, min, p50, p95, p99, max, mean }</code></td></tr><tr><td><code>clearHistory()</code></td><td><code>this</code></td><td>Wipe samples and status memory</td></tr><tr><td><code>exportJSON()</code></td><td><code>object</code></td><td><code>{ generatedAt, state, history }</code>, downloads too</td></tr><tr><td><code>restore()</code></td><td><code>object | null</code></td><td>Re-read <code>persistKey</code></td></tr></tbody></table></div>
+<p>Every method is safe to call after <code>destroy()</code> — it becomes a no-op rather than throwing.</p>
+<h3 id="events">Events</h3>
+<div class="code"><div class="code-bar"><span>js</span><button class="copy" type="button" data-copy>Copy</button></div><pre><code data-lang="js">const off = map.on('nodeclick', (node) =&gt; console.log(node));
+off();  // unsubscribe</code></pre></div>
+<div class="tw"><table><thead><tr><th scope="col">Event</th><th scope="col">Payload</th><th scope="col">Fires when</th></tr></thead><tbody><tr><td><code>ready</code></td><td><code>MapState</code></td><td>Construction finished</td></tr><tr><td><code>nodeclick</code></td><td><code>EdgeNode</code></td><td>A marker is clicked</td></tr><tr><td><code>livechange</code></td><td><code>boolean</code></td><td>Live state changes</td></tr><tr><td><code>statuschange</code></td><td><code>{ id, name, from, to, at }</code></td><td>A node changed status</td></tr><tr><td><code>recovered</code></td><td>same shape</td><td>A node returned to <code>Operational</code></td></tr><tr><td><code>feed</code></td><td><code>{ nodes, at }</code></td><td>A poll succeeded</td></tr><tr><td><code>feedstopped</code></td><td><code>{ attempts }</code></td><td>Polling gave up after 8 failures</td></tr><tr><td><code>themechange</code></td><td><code>'dark' | 'light'</code></td><td>Theme switched</td></tr><tr><td><code>focus</code></td><td><code>EdgeNode</code></td><td>A deep link focused a node</td></tr><tr><td><code>error</code></td><td><code>{ code | error, attempts?, url? }</code></td><td>Tile or fetch failure</td></tr><tr><td><code>destroy</code></td><td><code>null</code></td><td>Teardown complete</td></tr><tr><td><code>*</code></td><td><code>{ type, detail }</code></td><td>Any event (catch-all)</td></tr></tbody></table></div>
+<p>A throwing handler is caught and logged; it never breaks other subscribers.</p>
+<h3 id="state">State</h3>
+<div class="code"><div class="code-bar"><span>js</span><button class="copy" type="button" data-copy>Copy</button></div><pre><code data-lang="js">map.getState();
+// {
+//   version: '1.0.0',
+//   live: true,
+//   zoom: 2,
+//   nodes: [...],
+//   counts: { Operational: 12, Degraded: 1, Down: 1 },
+//   status: 'Down',        // worst across all nodes
+//   clusters: 2
+// }</code></pre></div>
+<hr>
+<h2 id="data-format">Data format</h2>
+<div class="code"><div class="code-bar"><span>ts</span><button class="copy" type="button" data-copy>Copy</button></div><pre><code data-lang="ts">interface EdgeNode {
+  id?: string;                          // defaults to array index
+  name?: string;
+  region?: string;                      // small caption in the tooltip
+  country?: string;                     // shown under the name; widens search
+  provider?: string;                    // widens search
+  lat: number;                          // required, −90…90
+  lon: number;                          // required, −180…180
+  status?: 'Operational' | 'Degraded' | 'Down';
+  latency?: number;                     // ms — ABSENT means unknown, not 0
+  ms?: number;                          // alias for latency
+  uptime?: number;                      // 0-100, needs showUptime
+  note?: string;                        // free text in the tooltip
+}</code></pre></div>
+<blockquote><p><strong>A missing <code>latency</code> is unknown, not <code>0</code>.</strong> It renders as <code>—</code>, records a gap in the sparkline, and is excluded from the average and p95. Defaulting it to zero is how a latency dashboard ends up reporting a broken probe as the fastest one on the map.</p></blockquote>
+<p>Malformed input is dropped rather than throwing — a bad row can't take the map down:</p>
+<div class="code"><div class="code-bar"><span>js</span><button class="copy" type="button" data-copy>Copy</button></div><pre><code data-lang="js">map.setNodes([
+  { id: 'ok',  lat: 39.04, lon: -77.48 },
+  { id: 'bad', lat: 'x',   lon: -77.48 },   // dropped
+  { id: 'off', lat: 200,   lon: 400 },       // dropped — out of range
+  { id: 'null',lat: null,  lon: 5 },         // dropped
+]);
+map.getNodes().length;   // 1</code></pre></div>
+<p>Names and regions are HTML-escaped before reaching a tooltip or the table, so node names from an untrusted API cannot inject markup.</p>
+<h3 id="live-feed">Live feed</h3>
+<p>Point <code>nodesUrl</code> at your telemetry endpoint, or poll <code>setNodes()</code> yourself. Return either a bare array or a wrapped object:</p>
+<div class="code"><div class="code-bar"><span>json</span><button class="copy" type="button" data-copy>Copy</button></div><pre><code data-lang="json">{ &quot;generatedAt&quot;: &quot;2026-10-08T18:04:11Z&quot;, &quot;nodes&quot;: [ { &quot;id&quot;: &quot;iad&quot;, &quot;lat&quot;: 39.04, &quot;lon&quot;: -77.48, &quot;status&quot;: &quot;Operational&quot;, &quot;latency&quot;: 12 } ] }</code></pre></div>
+<blockquote><p>Set <code>live: false</code> when you supply your own data. Otherwise the built-in jitter will overwrite your real latency numbers every 5 seconds.</p></blockquote>
+<hr>
+<h2 id="tile-sources">Tile sources</h2>
+<div class="tw"><table><thead><tr><th scope="col">Preset</th><th scope="col">URL</th><th scope="col">Key needed</th><th scope="col">Dark by default</th></tr></thead><tbody><tr><td><code>osmDark</code> <em>(default)</em></td><td><code>tile.openstreetmap.de</code></td><td>No</td><td>Yes, via CSS filter</td></tr><tr><td><code>osmLight</code></td><td><code>tile.openstreetmap.org</code></td><td>No</td><td>No</td></tr><tr><td><code>cartoDark</code></td><td><code>basemaps.cartocdn.com/dark_all</code></td><td><strong>Yes</strong></td><td>Yes</td></tr><tr><td><code>none</code></td><td>—</td><td>No</td><td>Renders on the shell background</td></tr></tbody></table></div>
+<h3 id="why-the-default-isnt-cartodb">Why the default isn't CartoDB</h3>
+<p>CartoDB's Dark Matter tiles <strong>now require an API key</strong>. Unauthenticated requests return a fixed 2,394-byte placeholder reading <code>API KEY REQUIRED</code> at every zoom level — measured across z2-z8 on <code>a.basemaps.cartocdn.com</code>, <code>basemaps.cartocdn.com</code> and <code>dark_nolabels</code>, all byte-identical.</p>
+<p><code>osmDark</code> is therefore the default: it is a real, keyless raster, and the shell applies <code>filter: invert(1) hue-rotate(185deg) …</code> to render it dark. That costs one CSS filter, no extra request, and no key.</p>
+<p>If you obtain a CARTO key:</p>
+<div class="code"><div class="code-bar"><span>js</span><button class="copy" type="button" data-copy>Copy</button></div><pre><code data-lang="js">new NovaPulseMap({ container: '#m', tile: 'cartoDark', tileUrl: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' });</code></pre></div>
+<p>The OSM attribution is always rendered, as their tile usage policy requires. Attribution may not be removed. Public OSM tile servers expect low-volume, interactive use; for production traffic, self-host tiles or use a commercial provider.</p>
+<hr>
+<h2 id="theming">Theming</h2>
+<p>Override CSS custom properties on the host element:</p>
+<div class="code"><div class="code-bar"><span>css</span><button class="copy" type="button" data-copy>Copy</button></div><pre><code data-lang="css">#probe-map {
+  --nps-ink:    #0B0F14;   /* map background + tile pane */
+  --nps-soft:   #111823;   /* cards, toggle */
+  --nps-line:   #243244;   /* borders */
+  --nps-fg:     #E2E8F0;   /* primary text */
+  --nps-faint:  #9FB0C6;   /* secondary text */
+  --nps-radius: 16px;
+}</code></pre></div>
+<p>Status colours:</p>
+<div class="code"><div class="code-bar"><span>js</span><button class="copy" type="button" data-copy>Copy</button></div><pre><code data-lang="js">new NovaPulseMap({
+  container: '#m',
+  colors: { Operational: '#00E676', Degraded: '#FFC400', Down: '#FF1744' }
+});</code></pre></div>
+<p>Tailwind projects can use their palette values directly — the library reads plain CSS variables, so no config is required.</p>
+<hr>
+<h2 id="accessibility">Accessibility</h2>
+<p>Verified with Lighthouse <strong>100</strong> on the accessibility audit.</p>
+<ul><li>Markers are keyboard-focusable (<code>tabindex=&amp;quot;0&amp;quot;</code>, <code>role=&amp;quot;button&amp;quot;</code>) with real names</li><li>Tooltips are readable by assistive tech; the table mirrors all data as a real <code>&amp;lt;table&amp;gt;</code></li><li>Live toggle uses <code>role=&amp;quot;switch&amp;quot;</code> with a live <code>aria-checked</code></li><li>Attribution and controls meet WCAG AA contrast (≥4.5:1)</li><li>Interactive targets are ≥24x24px</li><li><code>prefers-reduced-motion</code> disables the entrance animation and all pulses</li><li><code>prefers-contrast: more</code> thickens tooltip borders</li></ul>
+<hr>
+<h2 id="performance">Performance</h2>
+<div class="tw"><table><thead><tr><th scope="col">Measure</th><th scope="col">Value</th></tr></thead><tbody><tr><td>Bundle</td><td>57 KB raw, ~18 KB gzipped (v1.0.0 was ~11 KB)</td></tr><tr><td>Dependencies</td><td>Leaflet only (peer)</td></tr><tr><td>Clustering</td><td>Built in, ~35 lines — no markercluster plugin</td></tr><tr><td>DOM nodes</td><td>One marker per visible node; clusters merge the rest</td></tr><tr><td>History</td><td>Bounded per-node ring buffer, cleared on node churn</td></tr></tbody></table></div>
+<p>The size increase from v1.0.0 is the advanced feature set — sparklines, percentiles, search/filter/sort, theming and the polling loop. Everything is opt-in, so if you don't need it you're paying only for the ~18 KB.</p>
+<p>Auto-injected CSS adds roughly 10 KB (4 KB gzipped) and is skipped if you import <code>novapulse-edge-map/style.css</code> yourself, which lets your bundler cache it.</p>
+<p>Clustering matters more than it sounds. At world zoom, Ashburn and New York sit <strong>11 px</strong> apart and London and Amsterdam <strong>15 px</strong> — overlapping into a single unusable tap target that also fails WCAG 2.5.8. The library groups nodes closer than <code>clusterRadius</code> into one marker at their centroid, and splits them apart as soon as zoom separates them. Turning clustering off will reintroduce the overlap.</p>
+<hr>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p><strong>Blank map, no tiles</strong> Check the console for <code>error</code> events. Common causes: Leaflet loaded after this library, or a Content-Security-Policy blocking tile hosts.</p>
+<p><strong>Markers stuck at the top-left corner</strong> A zero-height container. Give the element a height — via the <code>height</code> option or <code>--nps-height</code>. Never set <code>height</code> on the host with <code>position: absolute</code> children.</p>
+<p><strong>Map clipped or unreachable edges</strong> Raise <code>minZoom</code> <em>down</em>, not up. <code>fitBounds</code> clamps at <code>minZoom</code>, so a container too small to fit every node at z2 needs z1.</p>
+<p><strong>React &quot;NotFoundError: removeChild&quot;</strong> Two libraries are managing the same node. Remove <code>data-novapulse-map</code> from any element React renders, and call <code>destroy()</code> in the effect cleanup.</p>
+<p><strong>Auto-init found nothing</strong> Auto-init runs on <code>DOMContentLoaded</code>. In a non-deferred inline script, wait for that event before touching <code>element.__npsInstance</code>.</p>
+<p><strong>Jitter overwrites my real data</strong> Set <code>live: false</code>.</p>
+<hr>
+<h2 id="advanced-features">Advanced features</h2>
+<p>v1.1.0 adds live polling, sparklines, p95 latency, trend indicators, search, filters, sortable columns, theme switching, incident detection and JSON export. All <strong>opt-in</strong> — defaults preserve the v1.0.0 behaviour exactly.</p>
+<div class="code"><div class="code-bar"><span>js</span><button class="copy" type="button" data-copy>Copy</button></div><pre><code data-lang="js">new NovaPulseMap({
+  container: '#map',
+  nodesUrl: '/api/probes.json',
+  live: false,              // your data is real — don't fake it
+  showControls: true,       // search + filters + theme + export
+  showSparklines: true,     // per-node SVG sparkline + p95 column
+  showTrend: true,          // ↑/↓ vs the previous samples
+  showUptime: true,
+  sortableTable: true,
+  deepLink: true,
+  persistKey: 'my-status'
+});</code></pre></div>
+<p>See <strong><a href="docs/ADVANCED.html">docs/ADVANCED.md</a></strong> for the full reference and <a href="examples/05-advanced.html">examples/05-advanced.html</a> for a live demo.</p>
+<hr>
+<h2 id="deploying">Deploying</h2>
+<p>100% free — GitHub Pages, unpkg, Vercel, Netlify, or plain nginx. See <strong><a href="docs/DEPLOY.html">docs/DEPLOY.md</a></strong>, including CSP headers, live-feed hosting on Cloudflare Workers, and a pre-launch checklist.</p>
+<hr>
+<h2 id="contributing">Contributing</h2>
+<div class="code"><div class="code-bar"><span>bash</span><button class="copy" type="button" data-copy>Copy</button></div><pre><code data-lang="bash">git clone https://github.com/SudhirDevOps1/NovaPulse-Map.git
+cd novapulse-edge-map
+
+npm test          # 79 assertions, no browser needed
+npm run build     # regenerate dist/
+npm run serve     # dev server + simulated /api/probes.json</code></pre></div>
+<p>Then open &lt;http://127.0.0.1:5173/examples/01-auto-init.html&gt;.</p>
+<p>The project has <strong>zero runtime and zero dev dependencies</strong> — by design. Please keep it that way; a status-page widget should never drag a toolchain along.</p>
+<hr>
+<h2 id="license">License</h2>
+<p>MIT Â© SudhirDevOps1</p>
+<p>Map data Â© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, available under the <a href="https://opendatacommons.org/licenses/odbl/">ODbL</a>. Tiles are served by third parties under their own terms.</p>
+<p><a href="https://leafletjs.com"><code>leaflet</code></a> is BSD-2-Clause and is a peer dependency, not bundled.</p>
+    </article>
+    <div class="editbar">
+      <span>Spotted something wrong or unclear?</span>
+      <a href="https://github.com/SudhirDevOps1/NovaPulse-Map/edit/main/README.md" target="_blank" rel="noopener noreferrer">Edit this page on GitHub</a>
+      <a href="https://github.com/SudhirDevOps1/NovaPulse-Map/issues/new" target="_blank" rel="noopener noreferrer">Open an issue</a>
+    </div>
+  </main>
+
+</div>
+<script>
+/**
+ * Client behaviour for the generated documentation pages.
+ *
+ * Kept as a real file rather than a string inside scripts/docs.mjs so the
+ * regexes are literals instead of escaped template-literal soup, and so this
+ * file can be linted and debugged like any other source.
+ *
+ * scripts/docs.mjs reads this and inlines it into every generated page.
+ */
+(function () {
+  'use strict';
+
+  var KEYWORDS = 'const|let|var|function|return|if|else|for|of|in|new|class|' +
+    'extends|import|from|export|default|await|async|try|catch|finally|throw|' +
+    'typeof|instanceof|delete|void|yield|static|get|set|null|true|false|undefined|this';
+
+  /* One combined regex per language, scanned in a SINGLE pass.
+     Applying each rule as a separate global replace over accumulating HTML
+     lets a later rule match inside markup emitted by an earlier one — that
+     bug turned sample code like "<div" into a class attribute. Single pass
+     cannot do that. */
+  var LANGS = {
+    js: {
+      re: /(\/\*[\s\S]*?\*\/|\/\/[^\n]*)|('(?:\\.|[^'])*'|"(?:\\.|[^"])*"|`(?:\\.|[^`])*`)|\b(CONSTKEYWORDS)\b|\b([A-Za-z_$][\w$]*)(?=\s*\()|\b(\d+(?:\.\d+)?)\b|([{}()[\];,.?!<>=+\-*/%&|])/,
+      classes: ['com', 'str', 'key', 'fn', 'num', 'pun']
+    },
+    html: {
+      re: /(&lt;!--[\s\S]*?--&gt;)|(&lt;\/?[A-Za-z][\w:-]*)|((?:[A-Za-z-]+)=)(&quot;[^&]*?&quot;|&#39;[^&]*?&#39;)|(\/?&gt;)/,
+      classes: ['com', 'tag', 'atr', 'str', 'tag']
+    },
+    json: {
+      re: /(&quot;[^&]*?&quot;)(?=\s*:)|(&quot;[^&]*?&quot;)|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|\b(true|false|null)\b/,
+      classes: ['key', 'str', 'num', 'key']
+    },
+    bash: {
+      re: /(#[^\n]*)|(&quot;[^&]*?&quot;|&#39;[^&]*?&#39;)|\b(npm|npx|node|git|curl|cd|ls|mkdir)\b/,
+      classes: ['com', 'str', 'key']
+    },
+    ts: {
+      re: /(\/\*[\s\S]*?\*\/|\/\/[^\n]*)|('(?:\\.|[^'])*'|"(?:\\.|[^"])*")|\b(TKEYWORDS)\b|\b([A-Za-z_$][\w$]*)(?=\s*[\(<])|\b(\d+(?:\.\d+)?)\b|([{}()[\];,.<>:?=|])/,
+      classes: ['com', 'str', 'key', 'fn', 'num', 'pun']
+    }
+  };
+  LANGS.jsx = LANGS.js;
+  LANGS.vue = LANGS.js;
+  LANGS.shell = LANGS.bash;
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function highlight(code, lang) {
+    var spec = LANGS[lang];
+    if (!spec) return esc(code);
+
+    var re = spec.re.source
+      .replace('CONSTKEYWORDS', KEYWORDS)
+      .replace('TKEYWORDS', KEYWORDS + '|interface|type|enum|implements|readonly|public|private|declare');
+    var rx = new RegExp(re, 'g');
+
+    /* Tokenise the ESCAPED text so the rules above (which expect &lt; and
+       &quot;) line up with it. Escape first, then match — never the reverse. */
+    var text = esc(code);
+    var out = '';
+    var last = 0;
+    var m;
+
+    while ((m = rx.exec(text)) !== null) {
+      if (m[0] === '') { rx.lastIndex++; continue; }
+      out += text.slice(last, m.index);
+      var cls = 'pun';
+      for (var g = 1; g < m.length; g++) {
+        if (m[g] !== undefined) { cls = spec.classes[g - 1] || 'pun'; break; }
+      }
+      out += '<span class="' + cls + '">' + m[0] + '</span>';
+      last = m.index + m[0].length;
+    }
+    return out + text.slice(last);
+  }
+
+  [].forEach.call(document.querySelectorAll('pre code[data-lang]'), function (code) {
+    code.innerHTML = highlight(code.textContent, code.getAttribute('data-lang'));
+  });
+
+  /* ── Copy buttons ──────────────────────────────────────────────────── */
+  [].forEach.call(document.querySelectorAll('[data-copy]'), function (btn) {
+    btn.addEventListener('click', function () {
+      var block = btn.closest('.code');
+      var code = block && block.querySelector('pre code');
+      if (!code) return;
+
+      var text = code.textContent;
+
+      function flash(label, ok) {
+        var old = btn.textContent;
+        btn.textContent = label;
+        btn.classList.toggle('done', !!ok);
+        setTimeout(function () {
+          btn.textContent = old;
+          btn.classList.remove('done');
+        }, 1600);
+      }
+
+      /* navigator.clipboard needs a secure context. file:// and plain HTTP on
+         a LAN do not qualify, so fall back to execCommand rather than failing
+         silently. */
+      function legacy() {
+        try {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.setAttribute('readonly', '');
+          ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+          document.body.appendChild(ta);
+          ta.select();
+          var ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          flash(ok ? 'Copied' : 'Ctrl+C', ok);
+        } catch (e) { flash('Ctrl+C', false); }
+      }
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text)
+          .then(function () { flash('Copied', true); })
+          .catch(legacy);
+      } else {
+        legacy();
+      }
+    });
+  });
+
+  /* ── Active sidebar: mark whichever page matches the path ──────────── */
+  (function () {
+    var here = location.pathname.split('/').pop() || 'index.html';
+    [].forEach.call(document.querySelectorAll('.side nav a'), function (a) {
+      var target = a.getAttribute('href').split('/').pop();
+      if (target === here) a.setAttribute('aria-current', 'page');
+    });
+  })();
+})();
+</script>
+</body>
+</html>

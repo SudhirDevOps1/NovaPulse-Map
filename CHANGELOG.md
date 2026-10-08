@@ -3,6 +3,46 @@
 All notable changes to this project are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-10-08
+
+Documentation is now rendered as HTML instead of being linked as raw
+Markdown.
+
+### Added
+
+- `scripts/docs.mjs` renders every Markdown doc into a real page with a
+  sidebar, syntax highlighting and copy buttons. It is a small
+  CommonMark+GFM subset and adds no dependency.
+- `scripts/doc-style.css` and `scripts/doc-client.js` hold the page CSS and
+  the inlined highlighter, so the regexes stay literals instead of escaped
+  template-literal soup.
+- `npm run docs` re-renders the docs. `docs.mjs --check` fails if the
+  committed HTML has drifted from its Markdown, and CI runs it.
+- `README.html`, `CHANGELOG.html`, `CONTRIBUTING.html` and `docs/*.html`
+  are committed for the same reason `dist/` is — Pages has no build step.
+- Six test assertions covering the docs: page generation, links never
+  pointing at raw `.md`, headings surviving a BOM, tables not going ragged
+  on an escaped pipe, no blank header cells, and docs/Markdown sync.
+
+### Fixed
+
+- Every footer and README link on the site pointed at a `.md` file, which
+  GitHub Pages serves as `text/plain`, so the reader got a wall of Markdown
+  source instead of the documentation.
+- `CHANGELOG.md`, `README.md` and `docs/DEPLOY.md` each carried a UTF-8
+  BOM. The invisible character stopped the first `#` from matching its
+  heading regex, so those pages rendered a literal `# Changelog` paragraph
+  with no `<h1>`.
+- An orphaned ``` fence in `README.md` swallowed the prose that followed
+  it into a code block, stealing the language tag for the next block.
+- Table cells containing an escaped pipe (`` `dark` \| `light` ``) were
+  split into extra columns, leaving those rows ragged.
+- The Performance table in `README.md` had an empty header row, which axe
+  reports as a large table whose cells have no headers.
+- Generated tables now emit `scope="col"`, and the horizontal scroll
+  container is a wrapper element. `display:block` on the `<table>` itself
+  was stripping its table semantics.
+
 ## [1.1.0] - 2026-10-08
 
 Advanced feature set. Everything is **opt-in** - v1.0.0 defaults are preserved

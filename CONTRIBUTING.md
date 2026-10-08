@@ -24,7 +24,7 @@ don't hide it, don't style it out.
 ```bash
 git clone https://github.com/SudhirDevOps1/NovaPulse-Map.git
 cd novapulse-edge-map
-npm test          # 40 assertions, runs in about a second
+npm test          # 79 assertions, runs in about a second
 npm run build     # regenerate dist/
 npm run serve     # http://127.0.0.1:5173
 ```

@@ -1,6 +1,6 @@
 {
   "name": "novapulse-edge-map",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Embeddable, keyless, production-grade world map of edge-probe vantage points. Leaflet + OpenStreetMap, pulsing status markers, latency sparklines, p95, live polling with backoff, incident detection, zoom-aware clustering. No API key, no tracking, no build step required.",
   "keywords": [
     "leaflet",
@@ -57,14 +57,15 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "node scripts/build.mjs && node scripts/stamp-version.mjs",
-    "build:check": "node scripts/build.mjs --check && node scripts/stamp-version.mjs --check",
+    "build": "node scripts/build.mjs && node scripts/docs.mjs && node scripts/stamp-version.mjs",
+    "build:check": "node scripts/build.mjs --check && node scripts/docs.mjs --check && node scripts/stamp-version.mjs --check",
     "serve": "node scripts/serve.mjs",
     "lint": "node --check src/novapulse.js && node --check dist/novapulse.js",
     "test": "node test/run.mjs",
     "prepublishOnly": "npm run build && npm run test",
     "verify": "npm run build && npm run build:check && npm test",
-    "stamp": "node scripts/stamp-version.mjs"
+    "stamp": "node scripts/stamp-version.mjs",
+    "docs": "node scripts/docs.mjs"
   },
   "peerDependencies": {
     "leaflet": "^1.9.4"

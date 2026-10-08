@@ -43,6 +43,27 @@ jobs:
           done
           echo "server did not start"; exit 1
 
+      # A doc link to a .md file lands the reader on raw text on Pages, so
+      # the rendered pages must exist and be current.
+      - name: Verify docs render, not raw Markdown
+        run: |
+          set -euo pipefail
+          for f in README.html CHANGELOG.html CONTRIBUTING.html \
+                   docs/GETTING-STARTED.html docs/ADVANCED.html \
+                   docs/DEPLOY.html docs/FILE-MAP.html; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:5173/$f")
+            if [ "$code" != "200" ]; then
+              echo "MISSING ($code): $f"
+              exit 1
+            fi
+            echo "ok  $f"
+          done
+          if grep -q 'href="./docs/GETTING-STARTED.md"' index.html; then
+            echo "index.html still links raw Markdown"
+            exit 1
+          fi
+          echo "all links point at rendered pages"
+
       # A page loading an old bundle is indistinguishable from a library bug,
       # so assert the served file carries the current version.
       #
@@ -77,12 +98,16 @@ jobs:
         uses: treosh/lighthouse-ci-action@v12
         with:
           urls: |
+            http://127.0.0.1:5173/index.html
             http://127.0.0.1:5173/examples/01-auto-init.html
             http://127.0.0.1:5173/examples/02-js-api.html
             http://127.0.0.1:5173/examples/03-iframe-host.html
             http://127.0.0.1:5173/examples/04-live-feed.html
             http://127.0.0.1:5173/examples/05-advanced.html
             http://127.0.0.1:5173/examples/embed-widget.html
+            http://127.0.0.1:5173/README.html
+            http://127.0.0.1:5173/docs/GETTING-STARTED.html
+            http://127.0.0.1:5173/docs/ADVANCED.html
           uploadArtifacts: true
           temporaryPublicStorage: true
           config: |

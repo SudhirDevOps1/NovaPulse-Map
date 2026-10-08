@@ -22,6 +22,11 @@ novapulse-edge-map/
 │   ├── novapulse.css / .min.css
 │   └── novapulse.d.ts      Types, copied through
 │
+├── *.html (generated)      Rendered docs. Do not hand-edit; edit the .md.
+│   ├── README.html
+│   ├── CHANGELOG.html
+│   └── CONTRIBUTING.html
+│
 ├── examples/               Runnable demos
 │   ├── 01-auto-init.html   Declarative, no page JS
 │   ├── 02-js-api.html     Two independent maps
@@ -33,14 +38,17 @@ novapulse-edge-map/
 │
 ├── scripts/                Dev tooling. Not shipped in the package.
 │   ├── build.mjs           Generates dist/ from src/
+│   ├── docs.mjs            Renders the .md docs into .html pages
+│   ├── doc-style.css       CSS for those pages (inlined by docs.mjs)
+│   ├── doc-client.js       Highlighter + copy buttons (inlined by docs.mjs)
 │   ├── stamp-version.mjs   Pins ?v= on asset URLs
 │   ├── serve.mjs           Dev server + simulated API
 │   └── contrast.mjs        WCAG contrast calculator
 │
 ├── test/
-│   └── run.mjs             73 assertions, no browser needed
+│   └── run.mjs             79 assertions, no browser needed
 │
-├── docs/
+├── docs/                   Markdown source, plus its rendered .html twin
 │   ├── GETTING-STARTED.md  Start here
 │   ├── ADVANCED.md         Feature reference + limitations
 │   ├── DEPLOY.md           Hosting, CSP, live feeds
@@ -162,16 +170,37 @@ Not published in the package (`files` in `package.json` excludes them).
 | Script | Does |
 |---|---|
 | `build.mjs` | Generates `dist/`, injects the version, verifies the minified output parses |
+| `docs.mjs` | Renders the Markdown docs into styled HTML pages |
+| `doc-style.css` | Styles for those pages, inlined by `docs.mjs` |
+| `doc-client.js` | Highlighter and copy buttons, inlined by `docs.mjs` |
 | `stamp-version.mjs` | Appends `?v=<version>` to local asset URLs so CDNs cannot serve a stale bundle |
 | `serve.mjs` | Static server plus `/api/probes.json` and `/api/flags`. Path-traversal guarded. |
 | `contrast.mjs` | WCAG contrast calculator. Run it instead of guessing a hex. |
 
 ```bash
-npm run build       # regenerate dist/ + stamp asset URLs
-npm run build:check # fail if dist/ or asset URLs are stale (used by CI)
-npm test            # 73 assertions
+npm run build       # regenerate dist/, render the docs, stamp asset URLs
+npm run docs        # just re-render the docs
+npm run build:check # fail if dist/, docs or asset URLs are stale (used by CI)
+npm test            # 79 assertions
 npm run serve       # dev server
 ```
+
+### Why the docs are rendered to HTML
+
+GitHub Pages serves `*.md` as `text/plain`, so linking a reader at `README.md
+dumped raw Markdown at them. `docs.mjs` converts the Markdown into real pages
+with a sidebar, syntax highlighting and copy buttons, so documentation is
+browsable on the site itself. Each page still links back to its source on
+GitHub for editing.
+
+The `.md` files stay the source of truth. The generated `.html` twins are
+committed for the same reason `dist/` is: Pages has no build step. `docs.mjs
+--check` makes CI fail if they drift from the Markdown.
+
+`docs.mjs` is a deliberately small CommonMark+GFM subset — headings, lists,
+tables, code fences, blockquotes, rules and inline marks. It is not a complete
+parser, and it warns loudly on an unclosed code fence rather than silently
+truncating the page.
 
 ---
 
@@ -254,7 +283,7 @@ broken bundle should not be able to go green.
 | `node_modules/` | Zero dependencies. Nothing to install. |
 | Bundler config | The library is one UMD file with no imports; a bundler would add ~1 MB to save nothing. |
 | Source maps | `build.mjs` does not emit `.map` files, so the minified bundle has no stack-trace mapping. |
-| Test framework | 73 assertions in one Node file. A runner would be the largest dependency in the repo. |
+| Test framework | 79 assertions in one Node file. A runner would be the largest dependency in the repo. |
 | ESlint / Prettier config | Style is enforced by review. Adding config files to a zero-dependency repo is a poor trade. |
 
 If a feature above ever earns its cost, the constraint that keeps saying no is

@@ -10,6 +10,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import vm from 'node:vm';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -1158,6 +1159,75 @@ check('methods no-op after destroy instead of throwing', () => {
   inst.fit();
   inst.zoomIn();
   assert(true, 'a post-destroy call threw');
+});
+
+/* ── Rendered docs ──────────────────────────────────────────────────────
+   GitHub Pages serves .md as plain text, so the docs are rendered to HTML.
+   These guard the parts that silently break: a stale generated page, a
+   link that still points at raw Markdown, an unescaped pipe that
+   desynchronises a table row. */
+
+const repoRoot = join(here, '..');
+const DOC_PAGES = [
+  'README.html', 'CHANGELOG.html', 'CONTRIBUTING.html',
+  'docs/GETTING-STARTED.html', 'docs/ADVANCED.html',
+  'docs/DEPLOY.html', 'docs/FILE-MAP.html'
+];
+
+check('every doc page is generated', () => {
+  for (const f of DOC_PAGES) {
+    assert(existsSync(join(repoRoot, f)), f + ' is missing — run: npm run docs');
+  }
+});
+
+check('site pages link to rendered docs, never to raw .md', () => {
+  for (const page of ['index.html', '404.html', ...DOC_PAGES]) {
+    const html = readFileSync(join(repoRoot, page), 'utf8');
+    const bad = [...html.matchAll(/href="([^"]*\.md)"/g)]
+      .map(m => m[1])
+      .filter(h => !h.includes('github.com'));   // GitHub links render there
+    eq(bad.length, 0, page + ' links to raw Markdown: ' + bad.join(', '));
+  }
+});
+
+check('generated doc pages carry their title and nav', () => {
+  for (const f of DOC_PAGES) {
+    const html = readFileSync(join(repoRoot, f), 'utf8');
+    assert(/<h1 /.test(html), f + ' has no h1 (a BOM before "#" breaks the heading match)');
+    assert(html.includes('class="side"'), f + ' has no sidebar');
+    assert(html.includes('<nav aria-label="Documentation">'), f + ' has no doc nav');
+  }
+});
+
+check('table cells are escaped pipes, not extra columns', () => {
+  /* `data-theme` documents `dark` \| `light`. A naive split on | turned one
+     cell into two and the whole row lost alignment. */
+  const html = readFileSync(join(repoRoot, 'README.html'), 'utf8');
+  const rows = [...html.matchAll(/<tr><th scope="col">(.*?)<\/th>/g)];
+  eq(rows.length > 0, true, 'README.html has no tables');
+  for (const block of html.match(/<table>[\s\S]*?<\/table>/g) || []) {
+    const counts = [...block.matchAll(/<tr>([\s\S]*?)<\/tr>/g)]
+      .map(m => (m[1].match(/<t[hd][ >]/g) || []).length)
+      .filter(n => n > 0);
+    if (!counts.length) continue;
+    eq(new Set(counts).size, 1,
+       'ragged table (' + counts.join(',') + '): ' +
+       block.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 90));
+  }
+});
+
+check('no doc page renders an empty table header', () => {
+  for (const f of DOC_PAGES) {
+    const html = readFileSync(join(repoRoot, f), 'utf8');
+    const empty = [...html.matchAll(/<th scope="col">\s*<\/th>/g)];
+    eq(empty.length, 0, f + ' has ' + empty.length + ' blank header cell(s)');
+  }
+});
+
+check('docs are in sync with their Markdown source', () => {
+  const res = spawnSync(process.execPath, [join(repoRoot, 'scripts', 'docs.mjs'), '--check'],
+    { encoding: 'utf8' });
+  eq(res.status, 0, 'docs.mjs --check failed:\n' + (res.stdout || '') + (res.stderr || ''));
 });
 
 /* ── Summary ────────────────────────────────────────────────────────── */

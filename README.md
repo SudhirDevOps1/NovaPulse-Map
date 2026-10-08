@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 # NovaPulse Edge Map
 
@@ -414,7 +414,6 @@ interface EdgeNode {
 > in the sparkline, and is excluded from the average and p95. Defaulting it to
 > zero is how a latency dashboard ends up reporting a broken probe as the
 > fastest one on the map.
-```
 
 Malformed input is dropped rather than throwing — a bad row can't take the map down:
 
@@ -523,7 +522,7 @@ Verified with Lighthouse **100** on the accessibility audit.
 
 ## Performance
 
-| | |
+| Measure | Value |
 |---|---|
 | Bundle | 57 KB raw, ~18 KB gzipped (v1.0.0 was ~11 KB) |
 | Dependencies | Leaflet only (peer) |
@@ -614,7 +613,7 @@ on Cloudflare Workers, and a pre-launch checklist.
 git clone https://github.com/SudhirDevOps1/NovaPulse-Map.git
 cd novapulse-edge-map
 
-npm test          # 40 assertions, no browser needed
+npm test          # 79 assertions, no browser needed
 npm run build     # regenerate dist/
 npm run serve     # dev server + simulated /api/probes.json
 ```
