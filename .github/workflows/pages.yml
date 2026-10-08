@@ -1,0 +1,58 @@
+name: Deploy Pages
+
+# Pages builds from a branch by default, but a push does not always kick one
+# off. This workflow makes the deploy explicit and verifiable, and fails loudly
+# if it does not.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - '404.html'
+      - 'dist/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Nothing to compile — dist/ is committed so the site works with no
+      # build step. This step exists to prove the files are actually present.
+      - name: Verify site files exist
+        run: |
+          set -euo pipefail
+          for f in index.html 404.html dist/novapulse.min.js dist/novapulse.css; do
+            if [ ! -f "$f" ]; then
+              echo "MISSING: $f"
+              exit 1
+            fi
+            echo "ok  $f"
+          done
+
+      - name: Keep artifacts
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
