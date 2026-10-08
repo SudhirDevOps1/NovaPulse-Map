@@ -1,0 +1,42 @@
+# ── Node ──────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+
+# ── Build output ──────────────────────────────────────────────────
+# dist/ is intentionally COMMITTED so the package works straight from
+# GitHub / unpkg with no install and no build step. Remove these two
+# lines if you would rather build on publish.
+# dist/
+# dist/*.map
+
+# ── Caches ────────────────────────────────────────────────────────
+.cache/
+.parcel-cache/
+.turbo/
+.eslintcache
+
+# ── Editors / OS ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# ── Logs & local env ──────────────────────────────────────────────
+*.log
+.env
+.env.*
+!.env.example
+.env.local
+
+# ── Test artefacts ────────────────────────────────────────────────
+coverage/
+.nyc_output/
+screenshots/
+*.local.html

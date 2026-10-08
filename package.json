@@ -1,0 +1,83 @@
+{
+  "name": "novapulse-edge-map",
+  "version": "1.0.0",
+  "description": "Embeddable, keyless, production-grade world map of edge-probe vantage points. Leaflet + OpenStreetMap, pulsing status markers, latency tooltips, zoom-aware clustering, dark theme. No API key, no tracking, no build step required.",
+  "keywords": [
+    "leaflet",
+    "openstreetmap",
+    "status-page",
+    "uptime",
+    "latency-monitoring",
+    "edge-nodes",
+    "dataviz",
+    "dark-mode",
+    "embed",
+    "iframe",
+    "no-api-key"
+  ],
+  "license": "MIT",
+  "author": "NovaPulse Labs",
+  "homepage": "https://github.com/your-org/novapulse-edge-map#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/novapulse-edge-map.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/novapulse-edge-map/issues"
+  },
+  "main": "./dist/novapulse.js",
+  "module": "./src/novapulse.js",
+  "types": "./src/novapulse.d.ts",
+  "unpkg": "./dist/novapulse.min.js",
+  "jsdelivr": "./dist/novapulse.min.js",
+  "sideEffects": [
+    "*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/novapulse.d.ts",
+      "import": "./src/novapulse.js",
+      "require": "./dist/novapulse.js",
+      "default": "./src/novapulse.js"
+    },
+    "./style.css": "./src/novapulse.css",
+    "./dist/*": "./dist/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:check": "node scripts/build.mjs --check",
+    "serve": "node scripts/serve.mjs",
+    "lint": "node --check src/novapulse.js && node --check dist/novapulse.js",
+    "test": "node test/run.mjs",
+    "prepublishOnly": "npm run build && npm run test"
+  },
+  "peerDependencies": {
+    "leaflet": "^1.9.4"
+  },
+  "peerDependenciesMeta": {
+    "leaflet": {
+      "optional": false
+    }
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18"
+  },
+  "browserslist": [
+    "defaults",
+    "not IE 11",
+    "not op_mini all"
+  ],
+  "sideEffectsNote": "Importing this package never mutates the host page until you call NovaPulseMap.mount() or use the data-novapulse-map auto-init attribute.",
+  "publishConfig": {
+    "access": "public"
+  }
+}

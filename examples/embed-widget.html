@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NovaPulse — Edge Status Widget</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="../dist/novapulse.css" />
+<style>
+  /* The widget frame is deliberately chrome-free: no scrollbars, no
+     padding, so it drops into any host layout without surprises. */
+  html,body{margin:0;padding:0;background:#0B0F14;color:#E2E8F0;
+            font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  body{padding:16px}
+  .bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+  .id{display:flex;align-items:center;gap:10px}
+  .mark{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;
+        background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+        font-weight:700;font-size:.8rem}
+  .name{font-weight:700;font-size:1rem;letter-spacing:-.01em}
+  .banner{border-radius:6px;padding:3px 9px;font-size:11px;font-weight:700;
+          text-transform:uppercase;letter-spacing:.06em;border:1px solid;
+          color:#22C55E;background:rgba(34,197,94,.13);border-color:rgba(34,197,94,.33)}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="id">
+    <span class="mark">N</span>
+    <span class="name">NovaPulse</span>
+    <span class="banner" id="banner">All Systems Operational</span>
+  </div>
+</div>
+
+<div data-novapulse-map
+     data-height="440"
+     data-show-toggle="true"
+     data-show-stats="true"
+     data-show-table="true"
+     data-nodes='[
+       {"id":"iad","name":"Ashburn","region":"us-east","lat":39.0438,"lon":-77.4874,"status":"Operational","latency":12},
+       {"id":"ewr","name":"New York","region":"us-east","lat":40.7128,"lon":-74.0060,"status":"Operational","latency":18},
+       {"id":"ord","name":"Chicago","region":"us-central","lat":41.8781,"lon":-87.6298,"status":"Operational","latency":24},
+       {"id":"dfw","name":"Dallas","region":"us-central","lat":32.7767,"lon":-96.7970,"status":"Operational","latency":31},
+       {"id":"sjc","name":"San Jose","region":"us-west","lat":37.3541,"lon":-121.9552,"status":"Operational","latency":42},
+       {"id":"lhr","name":"London","region":"eu-west","lat":51.5074,"lon":-0.1278,"status":"Operational","latency":78},
+       {"id":"fra","name":"Frankfurt","region":"eu-central","lat":50.1109,"lon":8.6821,"status":"Operational","latency":84},
+       {"id":"ams","name":"Amsterdam","region":"eu-west","lat":52.3676,"lon":4.9041,"status":"Operational","latency":86},
+       {"id":"dxb","name":"Dubai","region":"me","lat":25.2048,"lon":55.2708,"status":"Operational","latency":121},
+       {"id":"bom","name":"Mumbai","region":"apac","lat":19.0760,"lon":72.8777,"status":"Degraded","latency":148},
+       {"id":"gru","name":"São Paulo","region":"sa","lat":-23.5505,"lon":-46.6333,"status":"Down","latency":0},
+       {"id":"sin","name":"Singapore","region":"apac","lat":1.3521,"lon":103.8198,"status":"Operational","latency":186},
+       {"id":"nrt","name":"Tokyo","region":"apac","lat":35.6762,"lon":139.6503,"status":"Operational","latency":204},
+       {"id":"syd","name":"Sydney","region":"apac","lat":-33.8688,"lon":151.2093,"status":"Operational","latency":238}
+     ]'></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="../dist/novapulse.js"></script>
+<script>
+/* Reflect the widget's worst status into the banner above it. */
+(function(){
+  var el = document.querySelector('[data-novapulse-map]');
+  var inst = el && el.__npsInstance;
+  var banner = document.getElementById('banner');
+  if (!inst) return;
+
+  function paint(){
+    var s = inst.getState();
+    var c = s.counts.Down ? '#EF4444' : s.counts.Degraded ? '#F59E0B' : '#22C55E';
+    banner.textContent = s.counts.Down ? 'Partial Outage'
+                       : s.counts.Degraded ? 'Degraded Performance'
+                       : 'All Systems Operational';
+    banner.style.color = c;
+    banner.style.background = c + '22';
+    banner.style.borderColor = c + '55';
+  }
+  paint();
+  setInterval(paint, 3000);
+})();
+</script>
+</body>
+</html>
