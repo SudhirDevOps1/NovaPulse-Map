@@ -45,16 +45,25 @@ jobs:
 
       # A page loading an old bundle is indistinguishable from a library bug,
       # so assert the served file carries the current version.
+      #
+      # NOTE: the body is captured whole and parsed afterwards. Piping curl
+      # into `head -1` makes curl die of SIGPIPE (141), which `pipefail`
+      # turns into a failed pipeline — the check failed for a reason that had
+      # nothing to do with the version.
       - name: Served bundle matches package version
         run: |
           set -euo pipefail
           want=$(node -p "require('./package.json').version")
-          got=$(curl -sf "http://127.0.0.1:5173/dist/novapulse.min.js?v=$want" | head -1)
-          echo "want: $want"
-          echo "got : $got"
-          case "$got" in
+          body=$(curl -sf "http://127.0.0.1:5173/dist/novapulse.min.js?v=$want")
+          echo "want version: $want"
+          echo "served bytes: ${#body}"
+          case "$body" in
             *"$want"*) echo "version ok" ;;
-            *) echo "VERSION MISMATCH"; exit 1 ;;
+            *)
+              echo "VERSION MISMATCH"
+              printf '%s\n' "${body:0:160}"
+              exit 1
+              ;;
           esac
 
       - name: Feed endpoint responds

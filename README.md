@@ -4,13 +4,16 @@
 
 **An embeddable, keyless, production-grade world map of edge-probe vantage points.**
 
-[![npm version](https://img.shields.io/badge/npm-v1.0.0-22c55e)](https://www.npmjs.com/package/novapulse-edge-map)
+[![npm version](https://img.shields.io/badge/npm-v1.1.0-22c55e)](https://www.npmjs.com/package/novapulse-edge-map)
 [![license](https://img.shields.io/badge/license-MIT-38a169)](LICENSE)
-[![size](https://img.shields.io/badge/gzip-~11%20KB-5c7cfa)](dist/)
+[![size](https://img.shields.io/badge/gzip-~18%20KB-5c7cfa)](dist/)
 [![a11y](https://img.shields.io/badge/a11y-Lighthouse%20100-22c55e)](https://developer.chrome.com/docs/lighthouse/accessibility)
 [![no key](https://img.shields.io/badge/API%20key-required%3F-no-38a169)](https://www.openstreetmap.org/copyright)
+[![deps](https://img.shields.io/badge/dependencies-0-5c7cfa)](package.json)
 
 No API key. No credit card. No tracking. No build step required.
+
+[**Live showcase →**](./index.html)
 
 </div>
 
@@ -18,12 +21,28 @@ No API key. No credit card. No tracking. No build step required.
 
 A drop-in replacement for the abstract SVG map most status pages ship with. Real
 OpenStreetMap geography, pulsing status markers at true coordinates, latency
-tooltips, and zoom-aware clustering so dense regions stay tappable.
+sparklines with p95, live polling with exponential backoff, and automatic
+incident detection.
 
-- **~11 KB gzipped**, zero runtime dependencies beyond Leaflet
-- **Works everywhere** — plain `<script>`, npm, React, Vue, Svelte, or `<iframe>`
+- **~18 KB gzipped**, zero runtime dependencies beyond Leaflet
+- **Works everywhere** — plain `<script>`, npm, React, Vue, or `<iframe>`
 - **Accessible by default** — Lighthouse 100, keyboard-navigable, screen-reader safe
 - **No global state** — any number of independent maps on one page
+- **Honest about unknowns** — a missing latency renders as `—`, never `0 ms`
+
+---
+
+## Documentation
+
+| Doc | What it covers |
+|---|---|
+| [**Getting started**](docs/GETTING-STARTED.md) | Install, first render, the data contract, when *not* to use it |
+| [**Advanced**](docs/ADVANCED.md) | Every feature in depth, plus honest limitations |
+| [**Deploy**](docs/DEPLOY.md) | Pages, unpkg, Vercel, nginx, CSP headers, hosting a live feed |
+| [**File map**](docs/FILE-MAP.md) | What every file is for, and why `.gitignore` looks like it does |
+| [Examples](./examples/) | Six runnable demos, offline-capable |
+| [Changelog](CHANGELOG.md) | What changed and why |
+| [Contributing](CONTRIBUTING.md) | Ground rules and the traps to avoid |
 
 ---
 

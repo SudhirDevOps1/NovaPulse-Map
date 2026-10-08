@@ -71,14 +71,41 @@
   }
   .badge b{ color:var(--ok); font-weight:700 }
 
-  /* ── live demo ── */
-  .demo{ margin:8px 0 12px }
-  .demo-head{
-    display:flex; align-items:center; justify-content:space-between;
-    gap:14px; flex-wrap:wrap; margin-bottom:12px;
+  /* ── code blocks: highlight + copy ─────────────────────────────────── */
+  .code{
+    position:relative; background:#080C11; border:1px solid var(--line);
+    border-radius:12px; margin:0 0 18px;
   }
-  .demo-head h2{ margin:0; font-size:.78rem; text-transform:uppercase; letter-spacing:.09em; color:var(--faint) }
-  .demo-head .note{ font-size:.82rem; color:var(--dim); margin:0 }
+  .code-bar{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:9px 14px; border-bottom:1px solid var(--line);
+    font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--faint); font-weight:700;
+  }
+  .copy{
+    background:transparent; border:1px solid var(--line); color:var(--faint);
+    border-radius:7px; padding:4px 11px; font:inherit; font-size:11px;
+    font-weight:700; letter-spacing:.04em; cursor:pointer; min-height:26px;
+    text-transform:uppercase; transition:background .16s ease,color .16s ease,border-color .16s ease;
+  }
+  .copy:hover{ background:rgba(255,255,255,.06); color:#fff; border-color:#33455C }
+  .copy:focus-visible{ outline:2px solid #38BDF8; outline-offset:2px }
+  .copy.done{ color:var(--ok); border-color:rgba(34,197,94,.4) }
+  pre{
+    margin:0; padding:16px 18px; overflow-x:auto;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:.82rem; line-height:1.7; color:#C7D4E2; tab-size:2;
+  }
+  pre code{ font-family:inherit; white-space:pre }
+  /* token colours — checked for AA against #080C11 */
+  .t-com{ color:#6B7C93; font-style:italic }
+  .t-str{ color:#8FD48F }
+  .t-key{ color:#7FB6F0 }
+  .t-num{ color:#E9B872 }
+  .t-fn { color:#C9A6F0 }
+  .t-atr{ color:#7FD4D4 }
+  .t-tag{ color:#F08A7A }
+  .t-pun{ color:#8A99AC }
 
   /* ── sections ── */
   section{ padding:44px 0; border-top:1px solid rgba(255,255,255,.07) }
@@ -96,29 +123,36 @@
     transition:border-color .18s ease,transform .18s ease,background .18s ease;
   }
   a.card:hover{ border-color:#33455C; transform:translateY(-2px); background:#141D29 }
+  .card:focus-visible{ outline:2px solid #38BDF8; outline-offset:2px }
   .card h3{ margin:0; font-size:1rem; font-weight:700; color:#fff; letter-spacing:-.01em }
   .card p{ margin:0; font-size:.87rem; color:var(--dim) }
   .card .tag{
     font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
     color:var(--faint); margin-bottom:2px;
   }
-  /* #5C7C99 measured 4.07:1 on the card background — under the AA floor.
-     #7BA3C4 measures 6.68:1 and still reads as a muted accent. */
+  /* #5C7C99 measured 4.07:1 on the card — under AA. #7BA3C4 is 6.68:1. */
   .num{
     font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
     font-size:12px; color:#7BA3C4; margin-right:8px;
   }
 
-  pre{
-    background:#080C11; border:1px solid var(--line); border-radius:12px;
-    padding:18px 20px; overflow-x:auto; margin:0;
-    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-    font-size:.82rem; line-height:1.65; color:#C7D4E2;
+  /* ── tabs ── */
+  .tabs{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px }
+  .tab{
+    background:var(--soft); border:1px solid var(--line); color:var(--faint);
+    border-radius:999px; padding:8px 16px; font:inherit; font-size:.82rem;
+    font-weight:600; cursor:pointer; min-height:36px;
+    transition:background .16s ease,color .16s ease;
   }
-  code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.88em }
-  p code, li code, td code{
+  .tab:hover{ color:var(--fg); border-color:#33455C }
+  .tab[aria-selected="true"]{ background:var(--fg); color:#0B0F14; border-color:transparent }
+  .tab:focus-visible{ outline:2px solid #38BDF8; outline-offset:2px }
+  .panel[hidden]{ display:none }
+
+  code{
     background:rgba(255,255,255,.06); border:1px solid var(--line);
-    padding:1.5px 6px; border-radius:5px; color:#C7D4E2;
+    padding:1.5px 6px; border-radius:5px; color:#C7D4E2; font-size:.88em;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
   }
 
   table{ width:100%; border-collapse:collapse; font-size:.88rem }
@@ -140,7 +174,7 @@
     background:rgba(255,255,255,.03); border:1px solid var(--line);
     font-size:.82rem; color:var(--dim);
   }
-  @media (prefers-reduced-motion:reduce){ .btn,.card{ transition:none } }
+  @media (prefers-reduced-motion:reduce){ .btn,.card,.tab{ transition:none } }
 </style>
 </head>
 <body>
@@ -167,124 +201,331 @@
     </p>
 
     <div class="cta">
-      <a class="btn btn-primary" href="./examples/05-advanced.html">Open the advanced demo</a>
-      <a class="btn" href="#install">Quick start</a>
-      <a class="btn" href="./docs/ADVANCED.md">Feature reference</a>
-      <a class="btn" href="./docs/DEPLOY.md">Deploy guide</a>
+      <a class="btn btn-primary" href="./examples/05-advanced.html">Advanced demo</a>
+      <a class="btn" href="#install">Install</a>
+      <a class="btn" href="#use">Framework recipes</a>
+      <a class="btn" href="./docs/GETTING-STARTED.md">Getting started</a>
+      <a class="btn" href="./docs/FILE-MAP.md">File map</a>
     </div>
 
     <div class="badges">
       <span class="badge"><b>Lighthouse 100</b> accessibility</span>
-      <span class="badge"><b>71</b> tests, 0 dependencies</span>
+      <span class="badge"><b>73</b> tests, 0 dependencies</span>
       <span class="badge"><b>~18 KB</b> gzipped</span>
       <span class="badge">Works in an <b>iframe</b></span>
       <span class="badge">React &amp; Vue ready</span>
+      <span class="badge">Node, Deno, browsers</span>
     </div>
   </header>
 
   <!-- ── live demo ── -->
   <div class="demo">
-    <div class="demo-head">
-      <h2>Live demo &mdash; every feature enabled</h2>
-      <p class="note">Polling a real JSON feed. Use the controls above the map.</p>
+    <div class="demo-head" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:12px">
+      <h2 style="margin:0;font-size:.78rem;text-transform:uppercase;letter-spacing:.09em;color:var(--faint)">Live demo &mdash; every feature enabled</h2>
+      <p style="font-size:.82rem;color:var(--dim);margin:0">Search, filter and sort above the map. Hover any node.</p>
     </div>
-
     <div id="demo"></div>
   </div>
 
+  <!-- ── what / why ── -->
+  <section id="why">
+    <h2 class="h2">What problem it solves</h2>
+    <p class="sub">
+      Most status pages draw an abstract SVG. That is fine until someone asks
+      &ldquo;is it me or the network?&rdquo; &mdash; then a decorative blob is useless,
+      because it shows no geography. This is the same information on a real map.
+    </p>
+    <div class="grid g3">
+      <div class="card">
+        <span class="tag">Where</span>
+        <h3>Real coordinates</h3>
+        <p>Every node at its true lat/long, on real OSM tiles. A slow Sydney and a slow Singapore are visibly different problems.</p>
+      </div>
+      <div class="card">
+        <span class="tag">How bad</span>
+        <h3>Distribution, not just mean</h3>
+        <p>Sparklines plus p50/p95/p99 per node. A mean of 40&nbsp;ms can hide a p95 of 380&nbsp;ms, which is the number users feel.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Tappable</span>
+        <h3>Zoom-aware clustering</h3>
+        <p>Ashburn and New York sit 11&nbsp;px apart at world zoom. They merge into one marker and split as you zoom, instead of becoming one unusable target.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Honest</span>
+        <h3>Unknown is not zero</h3>
+        <p>A missing latency renders as &mdash; and records a gap. Fabricated zeros make a dead probe look like the fastest node on the map.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Loud</span>
+        <h3>Incident events</h3>
+        <p><code>statuschange</code> fires once per real transition, and <code>recovered</code> on the way back. Hook it to PagerDuty or Slack.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Cheap</span>
+        <h3>No key, no cost</h3>
+        <p>Keyless OSM tiles, ~18&nbsp;KB gzipped, zero runtime dependencies beyond Leaflet. Nothing to provision, nothing to expire.</p>
+      </div>
+    </div>
+  </section>
+
   <!-- ── install ── -->
   <section id="install">
-    <h2 class="h2">Quick start</h2>
+    <h2 class="h2">Install</h2>
     <p class="sub">
-      One attribute and two script tags. Auto-init scans the DOM on
-      <code>DOMContentLoaded</code>. Keep the <code>?v=</code> query string:
-      without it a CDN will happily hand a returning visitor an older bundle,
-      and the page then reports a version that does not match its own features.
+      Pick your path. All of them need Leaflet first &mdash; it is a peer dependency
+      and is never bundled.
     </p>
-<pre><code>&lt;link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /&gt;
-&lt;script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"&gt;&lt;/script&gt;
-&lt;script src="./dist/novapulse.min.js?v=1.1.0"&gt;&lt;/script&gt;
 
-&lt;div data-novapulse-map
-     data-nodes-url="/data/probes.json"
+    <div class="tabs" role="tablist" aria-label="Install method">
+      <button class="tab" role="tab" id="tab-cdn"  aria-controls="p-cdn"  aria-selected="true">CDN</button>
+      <button class="tab" role="tab" id="tab-auto" aria-controls="p-auto" aria-selected="false">Auto-init</button>
+      <button class="tab" role="tab" id="tab-npm"  aria-controls="p-npm"  aria-selected="false">npm</button>
+      <button class="tab" role="tab" id="tab-react" aria-controls="p-react" aria-selected="false">React</button>
+      <button class="tab" role="tab" id="tab-vue"  aria-controls="p-vue"  aria-selected="false">Vue</button>
+      <button class="tab" role="tab" id="tab-frame" aria-controls="p-frame" aria-selected="false">iframe</button>
+    </div>
+
+    <div class="panel" id="p-cdn" role="tabpanel" aria-labelledby="tab-cdn">
+      <div class="code">
+        <div class="code-bar"><span>HTML &mdash; script tags</span>
+          <button class="copy" type="button" data-copy>Copy</button></div>
+<pre><code data-lang="html">&lt;!-- 1. Leaflet CSS --&gt;
+&lt;link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /&gt;
+
+&lt;!-- 2. a container --&gt;
+&lt;div id="map" style="height:420px"&gt;&lt;/div&gt;
+
+&lt;!-- 3. Leaflet, then NovaPulse --&gt;
+&lt;script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"&gt;&lt;/script&gt;
+&lt;script src="https://unpkg.com/novapulse-edge-map/dist/novapulse.min.js"&gt;&lt;/script&gt;
+
+&lt;script&gt;
+  new NovaPulseMap({ container: '#map', nodes: [] });
+&lt;/script&gt;</code></pre>
+      </div>
+    </div>
+
+    <div class="panel" id="p-auto" role="tabpanel" aria-labelledby="tab-auto" hidden>
+      <p class="sub" style="margin-bottom:14px">
+        No JavaScript on the page at all. One attribute; the library scans the DOM on
+        <code>DOMContentLoaded</code>.
+      </p>
+      <div class="code">
+        <div class="code-bar"><span>HTML &mdash; declarative</span>
+          <button class="copy" type="button" data-copy>Copy</button></div>
+<pre><code data-lang="html">&lt;div data-novapulse-map
+     data-nodes-url="data/probes.json"
      data-height="420"
      data-show-stats="true"
-     data-show-table="true"&gt;&lt;/div&gt;</code></pre>
+     data-show-table="true"
+     data-show-controls="true"&gt;
+&lt;/div&gt;</code></pre>
+      </div>
+      <p class="sub">Every <code>data-*</code> attribute maps to an option, kebab-cased.</p>
+    </div>
+
+    <div class="panel" id="p-npm" role="tabpanel" aria-labelledby="tab-npm" hidden>
+      <div class="code">
+        <div class="code-bar"><span>bash</span>
+          <button class="copy" type="button" data-copy>Copy</button></div>
+<pre><code data-lang="bash">npm install novapulse-edge-map leaflet</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-bar"><span>JavaScript</span>
+          <button class="copy" type="button" data-copy>Copy</button></div>
+<pre><code data-lang="js">import NovaPulseMap from 'novapulse-edge-map';
+import 'novapulse-edge-map/style.css';
+import 'leaflet/dist/leaflet.css';
+
+const map = new NovaPulseMap({
+  container: '#map',
+  height: 420,
+  nodes: [
+    { id: 'iad', name: 'Ashburn', lat: 39.0438, lon: -77.4874,
+      status: 'Operational', latency: 12 }
+  ],
+  showStats: true,
+  showTable: true
+});</code></pre>
+      </div>
+    </div>
+
+    <div class="panel" id="p-react" role="tabpanel" aria-labelledby="tab-react" hidden>
+      <p class="sub" style="margin-bottom:14px">
+        The library owns its DOM, so hand it a <code>ref</code> &mdash; not JSX children.
+        Always <code>destroy()</code> on unmount or the interval keeps running.
+      </p>
+      <div class="code">
+        <div class="code-bar"><span>jsx</span>
+          <button class="copy" type="button" data-copy>Copy</button></div>
+<pre><code data-lang="jsx">import { useEffect, useRef } from 'react';
+import 'leaflet/dist/leaflet.css';
+import 'novapulse-edge-map/style.css';
+import NovaPulseMap from 'novapulse-edge-map';
+
+export function ProbeMap({ nodes }) {
+  const host = useRef(null);
+  const mapRef = useRef(null);
+
+  useEffect(() => {
+    mapRef.current = new NovaPulseMap({
+      container: host.current,
+      nodes,
+      height: 440,
+      showStats: true,
+      showTable: true
+    });
+    return () => mapRef.current.destroy();   // required
+  }, []);                                     // mount once
+
+  useEffect(() => {
+    mapRef.current?.setNodes(nodes);
+  }, [nodes]);
+
+  return &lt;div ref={host} /&gt;;
+}</code></pre>
+      </div>
+    </div>
+
+    <div class="panel" id="p-vue" role="tabpanel" aria-labelledby="tab-vue" hidden>
+      <div class="code">
+        <div class="code-bar"><span>vue</span>
+          <button class="copy" type="button" data-copy>Copy</button></div>
+<pre><code data-lang="html">&lt;script setup&gt;
+import { onMounted, onBeforeUnmount, ref, watch } from 'vue';
+import 'leaflet/dist/leaflet.css';
+import 'novapulse-edge-map/style.css';
+import NovaPulseMap from 'novapulse-edge-map';
+
+const props = defineProps({ nodes: { type: Array, required: true } });
+const host = ref(null);
+let map = null;
+
+onMounted(() =&gt; {
+  map = new NovaPulseMap({
+    container: host.value, nodes: props.nodes, height: 440
+  });
+});
+
+watch(() =&gt; props.nodes, (n) =&gt; map?.setNodes(n));
+
+onBeforeUnmount(() =&gt; map?.destroy());
+&lt;/script&gt;
+
+&lt;template&gt;&lt;div ref="host" /&gt;&lt;/template&gt;</code></pre>
+      </div>
+    </div>
+
+    <div class="panel" id="p-frame" role="tabpanel" aria-labelledby="tab-frame" hidden>
+      <p class="sub" style="margin-bottom:14px">
+        For a third-party host, a docs site, or anywhere CSS would collide. Host
+        <a href="./examples/embed-widget.html">the widget</a> yourself, then drive it over
+        <code>postMessage</code>.
+      </p>
+      <div class="code">
+        <div class="code-bar"><span>HTML &mdash; host page</span>
+          <button class="copy" type="button" data-copy>Copy</button></div>
+<pre><code data-lang="html">&lt;iframe src="/widget.html" width="100%" height="620"
+        title="Edge status" loading="lazy"&gt;&lt;/iframe&gt;
+
+&lt;script&gt;
+  const frame = document.querySelector('iframe');
+  const send = (m) =&gt;
+    frame.contentWindow.postMessage({ __novaPulse: 1, ...m }, '*');
+
+  send({ type: 'getState' });
+  send({ type: 'setLive', live: false });
+  send({ type: 'setNodes', nodes: [...] });
+
+  addEventListener('message', (ev) =&gt; {
+    if (ev.data?.__novaPulse === 1 &amp;&amp; ev.data.type === 'state') {
+      console.log(ev.data.state.status);
+    }
+  });
+&lt;/script&gt;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── use cases ── -->
+  <section id="use">
+    <h2 class="h2">What people build with it</h2>
+    <p class="sub">Four common jobs. Each needs nothing but the public API.</p>
+
+    <div class="grid g2">
+      <div class="card">
+        <span class="tag">Status page</span>
+        <h3>Public incident board</h3>
+        <p>Embed the widget, poll your own endpoint, and mirror the worst status into a headline badge.</p>
+      </div>
+      <div class="card">
+        <span class="tag">On-call</span>
+        <h3>Alerting bridge</h3>
+        <p>Subscribe to <code>recovered</code> and post to Slack or PagerDuty. No polling on your side.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Docs</span>
+        <h3>Region health table</h3>
+        <p>Hide the map, keep the table, and let users search and sort by region or carrier.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Dashboard</span>
+        <h3>Internal NOC view</h3>
+        <p>Several instances side by side with different feeds. No shared state, no ID collisions.</p>
+      </div>
+    </div>
   </section>
 
   <!-- ── features ── -->
   <section>
-    <h2 class="h2">What's in the box</h2>
-    <p class="sub">Everything is opt-in. The defaults preserve the minimal 1.0 behaviour exactly.</p>
+    <h2 class="h2">Feature set</h2>
+    <p class="sub">Everything is opt-in. The defaults preserve a minimal map with nothing else.</p>
     <div class="grid g3">
-      <div class="card">
-        <span class="tag">Latency</span>
-        <h3>Sparklines &amp; p95</h3>
-        <p>A bounded per-node sample history drawn as inline SVG. p50, p95 and p99, because a mean hides tail latency.</p>
-      </div>
-      <div class="card">
-        <span class="tag">Live</span>
-        <h3>Polling + backoff</h3>
-        <p>The interval doubles on failure, caps at 32&times;, and resets the instant a poll succeeds.</p>
-      </div>
-      <div class="card">
-        <span class="tag">Alerts</span>
-        <h3>Incident detection</h3>
-        <p><code>statuschange</code> fires once per real transition. <code>recovered</code> fires on return to operational.</p>
-      </div>
-      <div class="card">
-        <span class="tag">Interaction</span>
-        <h3>Search, filter, sort</h3>
-        <p>Search across name, region, country and provider. Keyboard-sortable columns with <code>aria-sort</code>.</p>
-      </div>
-      <div class="card">
-        <span class="tag">Cartography</span>
-        <h3>Zoom-aware clustering</h3>
-        <p>Nodes that would overlap merge into one marker at their centroid and split apart on zoom.</p>
-      </div>
-      <div class="card">
-        <span class="tag">Integration</span>
-        <h3>Embeds anywhere</h3>
-        <p>Script tag, npm, React, Vue, or an <code>iframe</code> driven over <code>postMessage</code>.</p>
-      </div>
+      <div class="card"><span class="tag">Latency</span><h3>Sparklines &amp; p95</h3>
+        <p>A bounded per-node sample history drawn as inline SVG, with p50, p95 and p99.</p></div>
+      <div class="card"><span class="tag">Live</span><h3>Polling + backoff</h3>
+        <p>The interval doubles on failure, caps at 32&times;, and resets on the first success.</p></div>
+      <div class="card"><span class="tag">Alerts</span><h3>Incident detection</h3>
+        <p><code>statuschange</code> on every real transition; <code>recovered</code> on the way back.</p></div>
+      <div class="card"><span class="tag">Interaction</span><h3>Search, filter, sort</h3>
+        <p>Search name, region, country and provider. Keyboard-sortable columns.</p></div>
+      <div class="card"><span class="tag">Cartography</span><h3>Clustering</h3>
+        <p>Overlapping nodes merge at their centroid and split apart on zoom.</p></div>
+      <div class="card"><span class="tag">Integration</span><h3>Embeds anywhere</h3>
+        <p>Script tag, npm, React, Vue, or <code>iframe</code> over <code>postMessage</code>.</p></div>
     </div>
   </section>
 
   <!-- ── examples ── -->
   <section>
     <h2 class="h2">Examples</h2>
-    <p class="sub">Each one demonstrates a different integration path. All are self-contained.</p>
+    <p class="sub">Each demonstrates a different integration path. All are self-contained and work offline.</p>
     <div class="grid g2">
       <a class="card" href="./examples/01-auto-init.html">
         <span class="tag"><span class="num">01</span>Auto-init</span>
         <h3>No JavaScript on the page</h3>
-        <p>One <code>data-novapulse-map</code> attribute, then drive the public API from the console.</p>
-      </a>
+        <p>One attribute, then drive the API from the console panel.</p></a>
       <a class="card" href="./examples/02-js-api.html">
         <span class="tag"><span class="num">02</span>JavaScript API</span>
         <h3>Two independent maps</h3>
-        <p>Proves there is no global state or ID collision. Light and dark themes side by side.</p>
-      </a>
+        <p>No global state or ID collisions. Light and dark side by side.</p></a>
       <a class="card" href="./examples/03-iframe-host.html">
         <span class="tag"><span class="num">03</span>iframe embed</span>
-        <h3>postMessage, both directions</h3>
-        <p>A host page pushing node updates and reading state from an embedded widget.</p>
-      </a>
+        <h3>postMessage, both ways</h3>
+        <p>A host pushing updates and reading state from an embedded widget.</p></a>
       <a class="card" href="./examples/04-live-feed.html">
         <span class="tag"><span class="num">04</span>Live feed</span>
         <h3>Polling a JSON endpoint</h3>
-        <p>The production pattern, with a simulated telemetry API and error handling.</p>
-      </a>
+        <p>The production pattern, with real error handling.</p></a>
       <a class="card" href="./examples/05-advanced.html">
         <span class="tag"><span class="num">05</span>Advanced</span>
         <h3>Everything at once</h3>
-        <p>Sparklines, p95, trends, search, filters, sorting, theming and incident detection.</p>
-      </a>
+        <p>Sparklines, p95, trends, search, filters, theming, incidents, backoff.</p></a>
       <a class="card" href="./examples/embed-widget.html">
         <span class="tag">Widget</span>
         <h3>The bare embeddable frame</h3>
-        <p>Exactly what you would point a third-party <code>&lt;iframe&gt;</code> at.</p>
-      </a>
+        <p>What a third-party <code>&lt;iframe&gt;</code> points at.</p></a>
     </div>
   </section>
 
@@ -293,12 +534,11 @@
     <h2 class="h2">Core API</h2>
     <p class="sub">
       Every method is safe to call after <code>destroy()</code> &mdash; it becomes a
-      no-op rather than throwing.
+      no-op rather than throwing. Full list in
+      <a href="./docs/ADVANCED.md">ADVANCED.md</a>.
     </p>
     <table>
-      <thead>
-        <tr><th>Method</th><th>Returns</th><th>Does</th></tr>
-      </thead>
+      <thead><tr><th>Method</th><th>Returns</th><th>Does</th></tr></thead>
       <tbody>
         <tr><td><code>setNodes(nodes)</code></td><td><code>this</code></td><td>Replace every node</td></tr>
         <tr><td><code>getNode(id)</code></td><td><code>node | null</code></td><td>One node, as a copy</td></tr>
@@ -310,7 +550,7 @@
         <tr><td><code>getPercentiles(id)</code></td><td><code>object | null</code></td><td>min, p50, p95, p99, max, mean</td></tr>
         <tr><td><code>setTheme(theme)</code></td><td><code>this</code></td><td>Swap tiles and CSS variables</td></tr>
         <tr><td><code>exportJSON()</code></td><td><code>object</code></td><td>State plus history, downloads too</td></tr>
-        <tr><td><code>destroy()</code></td><td><code>void</code></td><td>Timers, listeners and DOM all released</td></tr>
+        <tr><td><code>destroy()</code></td><td><code>void</code></td><td>Timers, listeners and DOM released</td></tr>
         <tr><td><code>on(event, fn)</code></td><td><code>function</code></td><td>Subscribe; returns an unsubscriber</td></tr>
       </tbody>
     </table>
@@ -320,16 +560,36 @@
   <section>
     <h2 class="h2">Feed format</h2>
     <p class="sub">
-      Any endpoint returning JSON works. Omit <code>latency</code> and it is treated as
-      <em>unknown</em>, never <code>0 ms</code> &mdash; a fabricated zero would make a
-      broken probe look like the fastest node on the map.
+      Any endpoint returning JSON works &mdash; a bare array, or wrapped in
+      <code>{ nodes: [...] }</code> so you can add metadata later without breaking anything.
     </p>
-<pre><code>[
-  { "id": "iad", "name": "Ashburn", "region": "us-east", "country": "US",
-    "lat": 39.0438, "lon": -77.4874,
-    "status": "Operational", "latency": 12,
-    "uptime": 99.97, "note": "" }
-]</code></pre>
+    <div class="code">
+      <div class="code-bar"><span>JSON</span>
+        <button class="copy" type="button" data-copy>Copy</button></div>
+<pre><code data-lang="json">{
+  "generatedAt": "2026-10-08T18:04:11Z",
+  "nodes": [
+    {
+      "id": "iad",
+      "name": "Ashburn",
+      "region": "us-east",
+      "country": "US",
+      "provider": "Example Telecom",
+      "lat": 39.0438,
+      "lon": -77.4874,
+      "status": "Operational",
+      "latency": 12,
+      "uptime": 99.97,
+      "note": ""
+    }
+  ]
+}</code></pre>
+    </div>
+    <p class="sub">
+      Omit <code>latency</code> and it is treated as <em>unknown</em>, never
+      <code>0 ms</code>. Bad coordinates and unknown statuses are dropped rather
+      than throwing, so one malformed row cannot take the map down.
+    </p>
   </section>
 
   <div class="credit">
@@ -346,10 +606,11 @@
     <span>MIT &copy; 2026 Sudhir Singh</span>
     <nav aria-label="Footer">
       <a href="./README.md">README</a>
+      <a href="./docs/GETTING-STARTED.md">Getting started</a>
+      <a href="./docs/FILE-MAP.md">File map</a>
       <a href="./docs/ADVANCED.md">Advanced</a>
       <a href="./docs/DEPLOY.md">Deploy</a>
       <a href="./CHANGELOG.md">Changelog</a>
-      <a href="./CONTRIBUTING.md">Contributing</a>
       <a href="https://github.com/SudhirDevOps1/NovaPulse-Map/issues">Issues</a>
     </nav>
   </footer>
@@ -358,52 +619,171 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="./dist/novapulse.min.js?v=1.1.0"></script>
+<script src="./examples/probe-sim.js?v=1.1.0"></script>
 <script>
-/* The hero demo runs a scripted feed rather than fetching, so the page works
-   from a plain file:// or a cold CDN cache without a server. */
+/* ── Minimal syntax highlighter ────────────────────────────────────────
+     Zero dependencies on purpose: Prism or highlight.js would add ~90 KB and
+     a CDN round trip to a page whose entire selling point is being small.
+
+     ONE combined regex per language, scanned in a single pass. An earlier
+     version applied each rule as a separate global replace over the
+     accumulating HTML, which let later rules match inside markup emitted by
+     earlier ones — turning sample code like "<div" into a class attribute.
+     Single-pass cannot do that. */
 (function () {
   'use strict';
-  var BASE = [
-    { id:'iad', name:'Ashburn',      region:'us-east',    country:'US', lat: 39.0438, lon: -77.4874, base: 12 },
-    { id:'ewr', name:'New York',     region:'us-east',    country:'US', lat: 40.7128, lon: -74.0060, base: 18 },
-    { id:'ord', name:'Chicago',      region:'us-central', country:'US', lat: 41.8781, lon: -87.6298, base: 24 },
-    { id:'dfw', name:'Dallas',       region:'us-central', country:'US', lat: 32.7767, lon: -96.7970, base: 31 },
-    { id:'sjc', name:'San Jose',     region:'us-west',    country:'US', lat: 37.3541, lon:-121.9552, base: 42 },
-    { id:'lhr', name:'London',       region:'eu-west',    country:'GB', lat: 51.5074, lon:  -0.1278, base: 78 },
-    { id:'fra', name:'Frankfurt',    region:'eu-central', country:'DE', lat: 50.1109, lon:   8.6821, base: 84 },
-    { id:'ams', name:'Amsterdam',    region:'eu-west',    country:'NL', lat: 52.3676, lon:   4.9041, base: 86 },
-    { id:'dxb', name:'Dubai',        region:'me',         country:'AE', lat: 25.2048, lon:  55.2708, base:121 },
-    { id:'bom', name:'Mumbai',       region:'apac',       country:'IN', lat: 19.0760, lon:  72.8777, base:148 },
-    { id:'gru', name:'Sao Paulo',    region:'sa',         country:'BR', lat:-23.5505, lon: -46.6333, base:156 },
-    { id:'sin', name:'Singapore',    region:'apac',       country:'SG', lat:  1.3521, lon: 103.8198, base:186 },
-    { id:'nrt', name:'Tokyo',        region:'apac',       country:'JP', lat: 35.6762, lon: 139.6503, base:204 },
-    { id:'syd', name:'Sydney',       region:'apac',       country:'AU', lat:-33.8688, lon: 151.2093, base:238 },
-    { id:'jnb', name:'Johannesburg', region:'africa',     country:'ZA', lat:-26.2041, lon:  28.0473, base:169 }
-  ];
 
-  var status = {};
-  BASE.forEach(function (n) { status[n.id] = 'Operational'; });
-  /* One permanent degraded node, so the degraded style is visible on load. */
-  status.bom = 'Degraded';
+  var KEYWORDS = 'const|let|var|function|return|if|else|for|of|in|new|class|' +
+    'extends|import|from|export|default|await|async|try|catch|finally|throw|' +
+    'typeof|instanceof|delete|void|yield|static|get|set|null|true|false|undefined|this';
 
-  function feed() {
-    return BASE.map(function (n) {
-      var down = status[n.id] === 'Down';
-      var spread = 0.22;
-      var jitter = Math.round(n.base * (Math.random() * spread - spread / 2));
-      return {
-        id: n.id, name: n.name, region: n.region, country: n.country,
-        lat: n.lat, lon: n.lon,
-        status: status[n.id],
-        latency: down ? 0 : Math.max(1, n.base + jitter),
-        uptime: down ? 97.4 : 99.9 + Math.random() * 0.09
-      };
-    });
+  /* Each entry: one alternation regex whose capture groups line up 1:1 with
+     `classes`. Group i colours classes[i-1]. */
+  var LANGS = {
+    js: {
+      re: new RegExp(
+        '(\\/\\*[\\s\\S]*?\\*\\/|\\/\\/[^\\n]*)' +           /* 1 comment */
+        '|(\'(?:\\\\.|[^\'])*\'|"(?:\\\\.|[^"])*"|`(?:\\\\.|[^`])*`)' +  /* 2 string */
+        '|\\b(' + KEYWORDS + ')\\b' +                        /* 3 keyword */
+        '|\\b([A-Za-z_$][\\w$]*)(?=\\s*\\()' +                /* 4 function */
+        '|\\b(\\d+(?:\\.\\d+)?)\\b' +                         /* 5 number */
+        '|([{}()\\[\\];,.?!<>=+\\-*/%&|])',                  /* 6 punctuation */
+        'g'),
+      classes: ['com', 'str', 'key', 'fn', 'num', 'pun']
+    },
+    html: {
+      re: /(&lt;!--[\s\S]*?--&gt;)|(&lt;\/?[A-Za-z][\w:-]*)|((?:[A-Za-z-]+)=)(&quot;[^&]*?&quot;|&#39;[^&]*?&#39;)|(\/?&gt;)/g,
+      classes: ['com', 'tag', 'atr', 'str', 'tag']
+    },
+    json: {
+      re: /(&quot;[^&]*?&quot;)(?=\s*:)|(&quot;[^&]*?&quot;)|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|\b(true|false|null)\b/g,
+      classes: ['key', 'str', 'num', 'key']
+    },
+    bash: {
+      re: /(#[^\n]*)|(&quot;[^&]*?&quot;|&#39;[^&]*?&#39;)|\b(npm|npx|node|git|curl|cd|ls|mkdir|npx)\b/g,
+      classes: ['com', 'str', 'key']
+    }
+  };
+
+  /* vue and jsx samples are JS with a template wrapper; reuse the JS rules and
+     let the escaped angle brackets pass through uncoloured. */
+  LANGS.jsx = LANGS.js;
+  LANGS.vue = LANGS.js;
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
+  function highlight(code, lang) {
+    var spec = LANGS[lang];
+    if (!spec) return escapeHtml(code);
+
+    var escaped = escapeHtml(code);   /* same length as code, entity-for-char */
+
+    /* Escape first, then tokenise the escaped text. Regexes above are written
+       against the escaped form, which is why quotes show as &quot;. */
+    var out = '';
+    var last = 0;
+    var m;
+    spec.re.lastIndex = 0;
+
+    while ((m = spec.re.exec(escaped)) !== null) {
+      if (m[0] === '') { spec.re.lastIndex++; continue; }   /* zero-width guard */
+      out += escaped.slice(last, m.index);
+
+      var cls = 'pun';
+      for (var g = 1; g < m.length; g++) {
+        if (m[g] !== undefined) { cls = spec.classes[g - 1] || 'pun'; break; }
+      }
+      out += '<span class="' + cls + '">' + m[0] + '</span>';
+      last = m.index + m[0].length;
+    }
+    out += escaped.slice(last);
+    return out;
+  }
+
+  /* ── tabs ── */
+  var tabs = [].slice.call(document.querySelectorAll('[role="tab"]'));
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute('aria-selected', String(on));
+        var panel = document.getElementById(t.getAttribute('aria-controls'));
+        if (panel) panel.hidden = !on;
+      });
+    });
+    tab.addEventListener('keydown', function (e) {
+      var i = tabs.indexOf(tab);
+      var next = e.key === 'ArrowRight' ? tabs[(i + 1) % tabs.length]
+               : e.key === 'ArrowLeft' ? tabs[(i - 1 + tabs.length) % tabs.length]
+               : null;
+      if (!next) return;
+      e.preventDefault();
+      next.focus();
+      next.click();
+    });
+  });
+
+  /* ── highlight + copy ── */
+  [].forEach.call(document.querySelectorAll('pre code'), function (code) {
+    var lang = code.getAttribute('data-lang') || 'js';
+    code.innerHTML = highlight(code.textContent, lang);
+  });
+
+  function flash(btn, text) {
+    var old = btn.textContent;
+    btn.textContent = text;
+    btn.classList.add('done');
+    setTimeout(function () {
+      btn.textContent = old;
+      btn.classList.remove('done');
+    }, 1600);
+  }
+
+  [].forEach.call(document.querySelectorAll('[data-copy]'), function (btn) {
+    btn.addEventListener('click', function () {
+      var block = btn.closest('.code');
+      var code = block && block.querySelector('pre code');
+      if (!code) return;
+      var text = code.textContent;
+
+      var done = function () { flash(btn, 'Copied'); };
+      var fail = function () { flash(btn, 'Press Ctrl+C'); };
+
+      /* navigator.clipboard needs a secure context, which file:// and plain
+         HTTP on a LAN are not. Fall back to the legacy path rather than
+         failing silently. */
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done).catch(function () { legacy(); });
+      } else {
+        legacy();
+      }
+
+      function legacy() {
+        try {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.setAttribute('readonly', '');
+          ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+          document.body.appendChild(ta);
+          ta.select();
+          var ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          ok ? done() : fail();
+        } catch (e) { fail(); }
+      }
+    });
+  });
+
+  /* ── live demo ─────────────────────────────────────────────────────── */
   var map = new NovaPulseMap({
     container: '#demo',
-    nodes: feed(),
+    nodes: new ProbeSim().nodes(),
     height: 460,
     theme: 'dark',
     showControls: true,
@@ -417,17 +797,18 @@
     refreshMs: 5000
   });
 
-  /* Scripted incident: brief degrades every ~40s, then recovers. A status page
-     that never shows a failure teaches nothing about what failure looks like. */
+  /* A brief scripted incident every ~40s. A status page that only ever shows
+     green teaches nothing about what a failure looks like. */
+  var sim = new ProbeSim();
   setInterval(function () {
-    var pool = BASE.filter(function (n) { return status[n.id] === 'Operational'; });
+    var pool = sim.nodes().filter(function (n) { return n.status === 'Operational'; });
     if (!pool.length) return;
     var pick = pool[Math.floor(Math.random() * pool.length)];
-    status[pick.id] = 'Down';
-    map.setNodes(feed());
+    sim.forceDown(pick.id);
+    map.setNodes(sim.nodes());
     setTimeout(function () {
-      status[pick.id] = 'Operational';
-      map.setNodes(feed());
+      sim._status[pick.id] = 'Operational';
+      map.setNodes(sim.nodes());
     }, 9000);
   }, 40000);
 })();

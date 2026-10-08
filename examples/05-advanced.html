@@ -14,44 +14,52 @@
   .wrap{max-width:1240px;margin:0 auto;padding:40px 24px}
   h1{font-size:1.7rem;letter-spacing:-.02em;margin:0 0 6px}
   p.lede{color:#94A3B8;margin:0 0 8px;font-size:.95rem;max-width:70ch}
-  p.note{color:#94A3B8;font-size:.85rem;margin:0 0 26px;max-width:70ch}
+  p.note{color:#94A3B8;font-size:.85rem;margin:0 0 22px;max-width:74ch}
+  code{background:rgba(255,255,255,.06);border:1px solid #243244;padding:1.5px 6px;
+       border-radius:5px;color:#C7D4E2;font-size:.88em}
+  .feedrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+  .btn{background:#1B2634;border:1px solid #33455C;color:#E2E8F0;border-radius:8px;
+       min-height:34px;padding:8px 14px;font:inherit;font-size:.83rem;cursor:pointer}
+  .btn:hover{background:#243244}
+  .btn:focus-visible{outline:2px solid #38BDF8;outline-offset:2px}
+  .btn[aria-pressed="true"]{background:#E2E8F0;color:#0B0F14;border-color:transparent}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
+        font-size:11px;font-weight:700;border:1px solid;margin-left:auto}
+  .pill i{width:6px;height:6px;border-radius:50%;background:currentColor}
+  .pill.live{color:#22C55E;background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.35)}
+  .pill.sim{color:#F59E0B;background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.35)}
+  .pill.err{color:#EF4444;background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.35)}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
   @media(max-width:880px){.grid{grid-template-columns:1fr}}
   .box{background:#111823;border:1px solid #243244;border-radius:12px;padding:16px 18px}
   .box h2{margin:0 0 12px;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#C7D4E2}
   .log{font-family:ui-monospace,Menlo,monospace;font-size:.74rem;color:#C7D4E2;
        max-height:210px;overflow:auto;white-space:pre-wrap;margin:0}
-  .feedrow{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-  .btn{background:#1B2634;border:1px solid #33455C;color:#E2E8F0;border-radius:8px;
-       min-height:32px;padding:8px 14px;font:inherit;font-size:.83rem;cursor:pointer}
-  .btn:hover{background:#243244}
-  .btn:focus-visible{outline:2px solid #38BDF8;outline-offset:2px}
-  .btn[aria-pressed="true"]{background:#E2E8F0;color:#0B0F14;border-color:transparent}
-  .pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;
-        border:1px solid}
 </style>
 </head>
 <body>
 <main class="wrap">
-  <h1>Example 5 — Advanced</h1>
+  <h1>Example 5 &mdash; Advanced</h1>
   <p class="lede">
     Everything in the library, enabled at once: per-node sparklines, p95 latency, trend
     arrows, live polling with exponential backoff, search, status filters, sortable
-    columns, a live theme switch, JSON export, and incident/recovery detection.
+    columns, a live theme switch, JSON export, and incident detection.
   </p>
   <p class="note">
-    Data comes from <code>/api/probes.json</code>, served by the dev server with
-    randomised latency and an occasional forced outage. To watch recovery work,
-    toggle <em>force outage</em>, leave it on for a poll or two, then switch it off.
+    This page tries the dev server's <code>api/probes.json</code> first. When that is not
+    available &mdash; on GitHub Pages, in CI, or opened straight from disk &mdash; it falls
+    back to <code>probe-sim.js</code>, an in-page simulator with the same response shape.
+    The badge on the right says which one is live, so the demo never silently pretends to
+    be connected.
   </p>
 
   <div class="feedrow">
     <button class="btn" id="bPolling" aria-pressed="true">Polling on</button>
     <button class="btn" id="bOutage" aria-pressed="false">Force outage</button>
     <button class="btn" id="bJitter" aria-pressed="false">Extra jitter</button>
-    <button class="btn" id="bBackoff" aria-pressed="false">Break endpoint</button>
+    <button class="btn" id="bBreak" aria-pressed="false">Break endpoint</button>
     <button class="btn" id="bClear">Clear history</button>
-    <span class="pill" id="feedPill" style="color:#22C55E;background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.3)">connected</span>
+    <span class="pill sim" id="feedPill" role="status" aria-live="polite"><i aria-hidden="true"></i>connecting</span>
   </div>
 
   <div id="advanced"></div>
@@ -70,29 +78,18 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="../dist/novapulse.js?v=1.1.0"></script>
+<script src="./probe-sim.js?v=1.1.0"></script>
 <script>
 (function () {
   'use strict';
 
-  var NODES = [
-    { id:'iad', name:'Ashburn',      region:'us-east',    country:'US', lat: 39.0438, lon: -77.4874 },
-    { id:'ewr', name:'New York',     region:'us-east',    country:'US', lat: 40.7128, lon: -74.0060 },
-    { id:'ord', name:'Chicago',      region:'us-central', country:'US', lat: 41.8781, lon: -87.6298 },
-    { id:'dfw', name:'Dallas',       region:'us-central', country:'US', lat: 32.7767, lon: -96.7970 },
-    { id:'sjc', name:'San Jose',     region:'us-west',    country:'US', lat: 37.3541, lon:-121.9552 },
-    { id:'lhr', name:'London',       region:'eu-west',    country:'GB', lat: 51.5074, lon:  -0.1278 },
-    { id:'fra', name:'Frankfurt',    region:'eu-central', country:'DE', lat: 50.1109, lon:   8.6821 },
-    { id:'ams', name:'Amsterdam',    region:'eu-west',    country:'NL', lat: 52.3676, lon:   4.9041 },
-    { id:'dxb', name:'Dubai',        region:'me',         country:'AE', lat: 25.2048, lon:  55.2708 },
-    { id:'bom', name:'Mumbai',       region:'apac',       country:'IN', lat: 19.0760, lon:  72.8777 },
-    { id:'gru', name:'São Paulo',    region:'sa',         country:'BR', lat:-23.5505, lon: -46.6333 },
-    { id:'sin', name:'Singapore',    region:'apac',       country:'SG', lat:  1.3521, lon: 103.8198 },
-    { id:'nrt', name:'Tokyo',        region:'apac',       country:'JP', lat: 35.6762, lon: 139.6503 },
-    { id:'syd', name:'Sydney',       region:'apac',       country:'AU', lat:-33.8688, lon: 151.2093 },
-    { id:'jnb', name:'Johannesburg', region:'africa',     country:'ZA', lat:-26.2041, lon:  28.0473 },
-    { id:'yyz', name:'Toronto',      region:'us-east',    country:'CA', lat: 43.6532, lon: -79.3832 }
-  ];
+  /* Relative to THIS file, which lives in examples/ — so ../api/... .
+     An absolute "/api/probes.json" resolves against the domain root and 404s
+     on any Pages project served from a subpath. */
+  var API = '../api/probes.json';
+  var FLAGS = '../api/flags';
 
+  var sim = new ProbeSim();
   var eventsEl = document.getElementById('events');
   var feedEl   = document.getElementById('feedlog');
   var pill     = document.getElementById('feedPill');
@@ -105,20 +102,63 @@
     while (el.children.length > 60) el.removeChild(el.lastChild);
   }
 
+  function setPill(mode, text) {
+    pill.className = 'pill ' + mode;
+    pill.innerHTML = '';
+    var dot = document.createElement('i');
+    dot.setAttribute('aria-hidden', 'true');
+    pill.appendChild(dot);
+    pill.appendChild(document.createTextNode(text));
+  }
+
+  /* ── Source: real API with a simulator fallback ────────────────────── */
+  var source = 'api';
+  var breakEndpoint = false;
+
+  function fetchJSON(url, ms) {
+    /* A hung endpoint must not stall the demo forever, so the attempt is
+       raced against a timeout rather than left to the browser default. */
+    return new Promise(function (resolve, reject) {
+      var timer = setTimeout(function () { reject(new Error('timeout')); }, ms || 3500);
+      fetch(url, { cache: 'no-store' })
+        .then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function (d) { clearTimeout(timer); resolve(d); })
+        .catch(function (e) { clearTimeout(timer); reject(e); });
+    });
+  }
+
+  function loadNodes() {
+    if (breakEndpoint) return Promise.reject(new Error('endpoint disabled by demo'));
+    if (source === 'api') {
+      return fetchJSON(API).then(function (d) {
+        setPill('live', 'live · dev server');
+        return Array.isArray(d) ? d : d.nodes;
+      }).catch(function () {
+        source = 'sim';
+        setPill('sim', 'simulated · no API here');
+        line(feedEl, 'API unreachable, switched to probe-sim.js');
+        return sim.nodes();
+      });
+    }
+    return Promise.resolve(sim.nodes());
+  }
+
+  /* ── Map ───────────────────────────────────────────────────────────── */
   var map = new NovaPulseMap({
     container: '#advanced',
-    nodes: NODES,
+    nodes: [],
     height: 500,
     theme: 'dark',
     tile: 'osmDark',
 
-    /* Panels */
     showToggle: true,
     showControls: true,
     showStats: true,
     showTable: true,
 
-    /* Advanced */
     showSearch: true,
     sortableTable: true,
     showSparklines: true,
@@ -127,9 +167,8 @@
     deepLink: true,
     persistKey: 'novapulse-demo-advanced',
 
-    /* Live feed */
-    nodesUrl: '/api/probes.json',
-    live: false,          /* real data — never fake it with jitter */
+    /* Real data — never let the built-in jitter overwrite it. */
+    live: false,
     refreshMs: 4000,
     refreshBackoff: true,
     pauseWhenHidden: true,
@@ -144,43 +183,75 @@
     }
   });
 
-  ['ready','feed','error','feedstopped','themechange','recovered']
-    .forEach(function (evt) {
-      map.on(evt, function (d) {
-        if (evt === 'feed') return line(feedEl, 'ok · ' + d.nodes + ' nodes');
-        if (evt === 'error') return;   /* already logged by onFeedError */
-        line(feedEl, evt + (d && d.attempts ? ' after ' + d.attempts + ' attempts' : ''));
-      });
+  ['feed', 'feedstopped', 'themechange', 'recovered'].forEach(function (evt) {
+    map.on(evt, function (d) {
+      if (evt === 'feed') return line(feedEl, 'ok · ' + d.nodes + ' nodes');
+      line(feedEl, evt + (d && d.attempts ? ' after ' + d.attempts + ' attempts' : ''));
     });
+  });
 
-  map.startPolling();
-
-  /* ── Demo controls ──────────────────────────────────────────────── */
-
+  /* ── Demo controls ─────────────────────────────────────────────────── */
   var polling = true;
+  var interval = null;
+
+  function tick() {
+    return loadNodes().then(function (nodes) {
+      map.setNodes(nodes || []);
+    });
+  }
+
+  function startLoop() {
+    stopLoop();
+    interval = setInterval(tick, 4000);
+  }
+  function stopLoop() {
+    if (interval) { clearInterval(interval); interval = null; }
+  }
+
   document.getElementById('bPolling').onclick = function () {
     polling = !polling;
     this.setAttribute('aria-pressed', String(polling));
     this.textContent = polling ? 'Polling on' : 'Polling off';
-    if (polling) { map.startPolling(); } else { map.stopPolling(); }
+    if (polling) { tick().then(startLoop); } else { stopLoop(); }
     line(feedEl, polling ? 'polling started' : 'polling stopped');
   };
 
-  /* Toggling these changes what the dev server returns, so the effect is
-     visible in the real feed rather than faked in the page. */
-  function toggleParam(btn, key, label) {
-    var on = btn.getAttribute('aria-pressed') !== 'true';
+  function press(btn, on) {
     btn.setAttribute('aria-pressed', String(on));
     btn.style.background = on ? '#E2E8F0' : '';
     btn.style.color = on ? '#0B0F14' : '';
-    fetch('/api/flags?' + key + '=' + (on ? '1' : '0'));
-    line(feedEl, label + ': ' + (on ? 'on' : 'off'));
   }
-  document.getElementById('bOutage').onclick = function () { toggleParam(this, 'outage', 'force outage'); };
-  document.getElementById('bJitter').onclick = function () { toggleParam(this, 'jitter', 'extra jitter'); };
-  document.getElementById('bBackoff').onclick = function () {
-    toggleParam(this, 'broken', 'endpoint');
-    line(feedEl, 'watch the poll interval grow, then reset');
+
+  document.getElementById('bOutage').onclick = function () {
+    var on = this.getAttribute('aria-pressed') !== 'true';
+    press(this, on);
+    if (source === 'api') {
+      /* Ask the dev server so the effect arrives through the real feed. */
+      fetch(FLAGS + '?outage=' + (on ? '1' : '0')).catch(function () {});
+    } else {
+      sim.set('outage', on);
+    }
+    line(feedEl, 'force outage: ' + (on ? 'on' : 'off'));
+    line(eventsEl, on ? 'watch for Operational → Down'
+                      : 'watch for Down → Operational (recovery)');
+  };
+
+  document.getElementById('bJitter').onclick = function () {
+    var on = this.getAttribute('aria-pressed') !== 'true';
+    press(this, on);
+    if (source === 'api') fetch(FLAGS + '?jitter=' + (on ? '1' : '0')).catch(function () {});
+    else sim.set('jitter', on);
+    line(feedEl, 'extra jitter: ' + (on ? 'on' : 'off'));
+  };
+
+  document.getElementById('bBreak').onclick = function () {
+    breakEndpoint = this.getAttribute('aria-pressed') !== 'true';
+    press(this, breakEndpoint);
+    source = 'api';
+    setPill('err', breakEndpoint ? 'endpoint broken' : 'reconnecting');
+    line(feedEl, breakEndpoint
+      ? 'endpoint broken — watch the poll interval grow: 4s → 8s → 16s → 32s'
+      : 'endpoint restored — backoff resets on the first success');
   };
 
   document.getElementById('bClear').onclick = function () {
@@ -188,26 +259,15 @@
     line(feedEl, 'history cleared');
   };
 
-  /* Poll the dev server's /api/flags to keep the pill honest. */
-  setInterval(function () {
-    fetch('/api/probes.json', { cache:'no-store' })
-      .then(function (r) { return r.json(); })
-      .then(function () {
-        pill.textContent = 'connected';
-        pill.style.color = '#22C55E';
-        pill.style.background = 'rgba(34,197,94,.15)';
-        pill.style.borderColor = 'rgba(34,197,94,.3)';
-      })
-      .catch(function () {
-        pill.textContent = 'unreachable';
-        pill.style.color = '#EF4444';
-        pill.style.background = 'rgba(239,68,68,.15)';
-        pill.style.borderColor = 'rgba(239,68,68,.3)';
-      });
-  }, 4000);
-
+  /* ── Go ────────────────────────────────────────────────────────────── */
+  setPill('sim', 'connecting');
   line(eventsEl, 'Watching for status transitions…', '#94A3B8');
   line(feedEl, 'NovaPulseMap v' + NovaPulseMap.VERSION + ' · advanced example');
+
+  tick().then(function () {
+    map.fit();
+    startLoop();
+  });
 })();
 </script>
 </body>
